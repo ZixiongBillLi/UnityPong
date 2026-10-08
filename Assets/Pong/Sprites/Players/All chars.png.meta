@@ -1,0 +1,387 @@
+fileFormatVersion: 2
+guid: da0a33868719afa43bbd974e9a3574c9
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: -6697671635014637779
+    second: All chars_0
+  - first:
+      213: 335858185269195915
+    second: All chars_1
+  - first:
+      213: 5051352729685297096
+    second: All chars_2
+  - first:
+      213: 4497220012865588191
+    second: All chars_3
+  - first:
+      213: -771758861986575800
+    second: All chars_4
+  - first:
+      213: 1062556712572390009
+    second: All chars_5
+  - first:
+      213: 6718815692323594904
+    second: All chars_6
+  - first:
+      213: -7800284428894450320
+    second: All chars_7
+  - first:
+      213: -8355457850676834410
+    second: All chars_8
+  - first:
+      213: -2493657812247256495
+    second: All chars_9
+  - first:
+      213: 257692910641209230
+    second: All chars_10
+  - first:
+      213: 7413193090304588814
+    second: All chars_11
+  - first:
+      213: 1595878433990977633
+    second: All chars_12
+  - first:
+      213: 864315531233266200
+    second: All chars_13
+  - first:
+      213: 8888307559115537129
+    second: All chars_14
+  - first:
+      213: -518604984738794623
+    second: All chars_15
+  - first:
+      213: 254356511530846130
+    second: All chars_16
+  - first:
+      213: 6961309785119284876
+    second: All chars_17
+  - first:
+      213: 7707473446072650081
+    second: All chars_18
+  - first:
+      213: 1636319811796484235
+    second: All chars_19
+  - first:
+      213: 7332250669125920666
+    second: All chars_20
+  - first:
+      213: -2422213334757681290
+    second: All chars_21
+  - first:
+      213: 2827384927689521023
+    second: All chars_22
+  - first:
+      213: 5822995195833271340
+    second: All chars_23
+  - first:
+      213: 4660624730074516179
+    second: All chars_24
+  - first:
+      213: 3760404392015952184
+    second: All chars_25
+  - first:
+      213: -6245023845060724805
+    second: All chars_26
+  - first:
+      213: -7799829221180305515
+    second: All chars_27
+  - first:
+      213: -7119373100764858805
+    second: All chars_28
+  - first:
+      213: -2063702951140461929
+    second: All chars_29
+  - first:
+      213: -9071946832457195353
+    second: All chars_30
+  - first:
+      213: 1242496428366718156
+    second: All chars_31
+  - first:
+      213: -2082778663855734577
+    second: All chars_32
+  - first:
+      213: -1789241356790618465
+    second: All chars_33
+  - first:
+      213: 2634220732590227715
+    second: All chars_34
+  - first:
+      213: -8354560686275817800
+    second: All chars_35
+  - first:
+      213: -331526382896382800
+    second: All chars_36
+  - first:
+      213: -3891841358851536828
+    second: All chars_37
+  - first:
+      213: 7986067175795506727
+    second: All chars_38
+  - first:
+      213: -5161527472549160337
+    second: All chars_39
+  - first:
+      213: -3477063991439881723
+    second: All chars_40
+  - first:
+      213: 8009366727871302606
+    second: All chars_41
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: WebGL
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: OrangeReady
+      rect:
+        serializedVersion: 2
+        x: 1102
+        y: 303
+        width: 312
+        height: 457
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 69f88aa9a537b0c80800000000000000
+      internalID: -8355457850676834410
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BlueReady
+      rect:
+        serializedVersion: 2
+        x: 395
+        y: 306
+        width: 312
+        height: 457
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e0c3cfeb6d3f0e660800000000000000
+      internalID: 7413193090304588814
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Orange Stand
+      rect:
+        serializedVersion: 2
+        x: 757
+        y: 304
+        width: 312
+        height: 415
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 183b5e9938b8dc8f0800000000000000
+      internalID: -518604984738794623
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Blue Stand
+      rect:
+        serializedVersion: 2
+        x: 43
+        y: 304
+        width: 312
+        height: 415
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c8e5c71fd5a8b9060800000000000000
+      internalID: 6961309785119284876
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 936478d082d07fb4ebbb080de9c74b29
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      All chars_0: -6697671635014637779
+      All chars_1: 335858185269195915
+      All chars_10: 257692910641209230
+      All chars_12: 1595878433990977633
+      All chars_13: 864315531233266200
+      All chars_14: 8888307559115537129
+      All chars_16: 254356511530846130
+      All chars_18: 7707473446072650081
+      All chars_19: 1636319811796484235
+      All chars_2: 5051352729685297096
+      All chars_20: 7332250669125920666
+      All chars_21: -2422213334757681290
+      All chars_22: 2827384927689521023
+      All chars_23: 5822995195833271340
+      All chars_24: 4660624730074516179
+      All chars_25: 3760404392015952184
+      All chars_26: -6245023845060724805
+      All chars_27: -7799829221180305515
+      All chars_28: -7119373100764858805
+      All chars_29: -2063702951140461929
+      All chars_3: 4497220012865588191
+      All chars_30: -9071946832457195353
+      All chars_31: 1242496428366718156
+      All chars_32: -2082778663855734577
+      All chars_33: -1789241356790618465
+      All chars_34: 2634220732590227715
+      All chars_35: -8354560686275817800
+      All chars_36: -331526382896382800
+      All chars_37: -3891841358851536828
+      All chars_38: 7986067175795506727
+      All chars_39: -5161527472549160337
+      All chars_4: -771758861986575800
+      All chars_40: -3477063991439881723
+      All chars_41: 8009366727871302606
+      All chars_42: -1695211081
+      All chars_5: 1062556712572390009
+      All chars_6: 6718815692323594904
+      All chars_7: -7800284428894450320
+      All chars_9: -2493657812247256495
+      Blue Stand: 6961309785119284876
+      BlueReady: 7413193090304588814
+      Orange Stand: -518604984738794623
+      OrangeReady: -8355457850676834410
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
