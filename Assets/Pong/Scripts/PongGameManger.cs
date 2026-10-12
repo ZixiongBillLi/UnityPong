@@ -53,14 +53,27 @@ public class PongGameManager : MonoBehaviour
     public TMP_Text leftScoreText;
     public TMP_Text rightScoreText;
 
+    [Header("Game over UI")]
     public GameObject gameOverPanel;
     public TMP_Text winnerText;
+    public TMP_Text gameOverBlueScoreText;
+    public TMP_Text gameOverOrangeScoreText;
+    [Tooltip("PongUIFeedback on the Play Again button, for the held Space overlay.")]
+    public PongUIFeedback gameOverPlayAgainFeedback;
+
+    [Header("Game over text outlines")]
+    public Color blueResultOutline = new Color(0f, 0.8f, 1f, 1f);
+    public Color orangeResultOutline = new Color(1f, 0.55f, 0.05f, 1f);
+    public Color drawResultOutline = new Color(0.65f, 0.7f, 0.75f, 1f);
+    [Range(0f, 1f)] public float winnerOutlineWidth = 0.25f;
+    [Range(0f, 1f)] public float finalScoreOutlineWidth = 0.18f;
 
     public InputActionAsset inputActions;
 
     private InputAction spawnAction;
 
     private bool gameOver = false;
+    private bool gameOverRestartHeld;
 
     public PongPaddleVisuals player1Visuals;
     public PongPaddleVisuals player2Visuals;
@@ -115,6 +128,7 @@ public class PongGameManager : MonoBehaviour
     private Vector3 quickCountdownBaseScale;
     private Color quickCountdownBaseColor;
     private Coroutine goalPauseRoutine;
+    private Coroutine scoreFlashRoutine;
 
     private bool quickCountdownActive = false;
     private Coroutine quickCountdownRoutine;
@@ -238,9 +252,9 @@ public class PongGameManager : MonoBehaviour
             return;
         }
 
-        if (gameOver && spawnAction.WasPressedThisFrame())
+        if (gameOver)
         {
-            RestartGame();
+            UpdateGameOverRestartInput();
             return;
         }
 
@@ -264,6 +278,7 @@ public class PongGameManager : MonoBehaviour
 
     private void SetMenuPanel(GameObject panel)
     {
+        CancelGameOverRestartPress();
         matchIntroActive = false;
         if (matchPresentation != null)
             matchPresentation.ResetPresentation();
@@ -294,8 +309,6 @@ public class PongGameManager : MonoBehaviour
 
         goalPause = true;
 
-        targetManager.OnGoalScored();
-
         int points = ball.GetGoalPoints();
 
         if (player == 1)
@@ -308,6 +321,14 @@ public class PongGameManager : MonoBehaviour
         }
 
         UpdateScoreText();
+
+        // Keep the final field's target when this goal already decides a Legacy match.
+        bool winningGoal = gameMode == GameMode.Legacy &&
+            (player1Score >= settings.legacyWinScore || player2Score >= settings.legacyWinScore);
+        if (winningGoal)
+            targetManager.OnMatchEnded();
+        else
+            targetManager.OnGoalScored();
 
         goalPauseRoutine = StartCoroutine(GoalPauseRoutine(player));
     }
@@ -351,24 +372,114 @@ public class PongGameManager : MonoBehaviour
     private void EndGame(int winner)
     {
         gameOver = true;
+        CancelGameOverRestartPress();
+        CancelQuickCountdown();
+        StopScoreFlash();
+        targetManager.OnMatchEnded();
 
         ball.ResetBall(GetNextServeSpeed());
         ball.enabled = false;
 
+        // Freeze the field while the menu keeps animating with unscaled time.
+        Time.timeScale = 0f;
+
+        // Enable the panel first so TMP has initialized its font material.
+        gameOverPanel.SetActive(true);
+        UpdateGameOverText(winner);
+    }
+
+    private void UpdateGameOverText(int winner)
+    {
+        // Scores are stored by control group. Blue always occupies Left, orange Right.
+        int blueScore = player1Side == PaddleSide.Left ? player1Score : player2Score;
+        int orangeScore = player1Side == PaddleSide.Right ? player1Score : player2Score;
+
+        if (gameOverBlueScoreText != null)
+        {
+            gameOverBlueScoreText.text = blueScore.ToString("00");
+            ApplyGameOverOutline(gameOverBlueScoreText, blueResultOutline, finalScoreOutlineWidth);
+        }
+
+        if (gameOverOrangeScoreText != null)
+        {
+            gameOverOrangeScoreText.text = orangeScore.ToString("00");
+            ApplyGameOverOutline(gameOverOrangeScoreText, orangeResultOutline, finalScoreOutlineWidth);
+        }
+
         if (winner == 0)
         {
-            winnerText.text = "Draw!";
+            winnerText.text = "DRAW!";
+            ApplyGameOverOutline(winnerText, drawResultOutline, winnerOutlineWidth);
         }
         else
         {
-            winnerText.text = "Player " + winner + " Wins!";
+            PaddleSide winnerSide = winner == 1 ? player1Side : player2Side;
+            bool blueWins = winnerSide == PaddleSide.Left;
+            winnerText.text = blueWins ? "BLUE WINS!" : "ORANGE WINS!";
+            ApplyGameOverOutline(winnerText,
+                blueWins ? blueResultOutline : orangeResultOutline, winnerOutlineWidth);
+        }
+    }
+
+    private static void ApplyGameOverOutline(TMP_Text text, Color color, float width)
+    {
+        if (text == null || text.fontSharedMaterial == null)
+            return;
+
+        // fontMaterial gives this text its own instance; never edit the shared font asset.
+        Material material = text.fontMaterial;
+        if (!material.HasProperty(ShaderUtilities.ID_OutlineWidth) ||
+            !material.HasProperty(ShaderUtilities.ID_OutlineColor))
+        {
+            Debug.LogWarning("PongGameManager: game over outlines need a TMP Distance Field font material.", text);
+            return;
         }
 
-        gameOverPanel.SetActive(true);
+        text.outlineColor = color;
+        text.outlineWidth = Mathf.Clamp01(width);
+        material.EnableKeyword(ShaderUtilities.Keyword_Outline);
+        text.UpdateMeshPadding();
+    }
+
+    private void UpdateGameOverRestartInput()
+    {
+        if (!Application.isFocused || !gameOverPanel.activeInHierarchy)
+        {
+            CancelGameOverRestartPress();
+            return;
+        }
+
+        if (spawnAction.WasPressedThisFrame())
+        {
+            gameOverRestartHeld = true;
+            if (gameOverPlayAgainFeedback != null && gameOverPlayAgainFeedback.isActiveAndEnabled)
+                gameOverPlayAgainFeedback.SetExternalHeld(true);
+        }
+
+        if (gameOverRestartHeld && spawnAction.WasReleasedThisFrame())
+        {
+            CancelGameOverRestartPress();
+            RestartGame();
+        }
+    }
+
+    private void CancelGameOverRestartPress()
+    {
+        gameOverRestartHeld = false;
+        if (gameOverPlayAgainFeedback != null && gameOverPlayAgainFeedback.isActiveAndEnabled)
+            gameOverPlayAgainFeedback.SetExternalHeld(false);
+    }
+
+    private void OnApplicationFocus(bool hasFocus)
+    {
+        if (!hasFocus)
+            CancelGameOverRestartPress();
     }
 
     public void RestartGame()
     {
+        CancelGameOverRestartPress();
+        Time.timeScale = 1f;
         gameOver = false;
         leftPaddleController.ResetToStartPosition();
         rightPaddleController.ResetToStartPosition();
@@ -469,7 +580,8 @@ public class PongGameManager : MonoBehaviour
         ball.enabled = false;
 
         losingPlayerVisuals.SetSweat(true);
-        StartCoroutine(FlashScoreText(scoringText));
+        StopScoreFlash();
+        scoreFlashRoutine = StartCoroutine(FlashScoreText(scoringText));
         yield return new WaitForSeconds(settings.goalPauseDuration);
 
         losingPlayerVisuals.SetSweat(false);
@@ -512,6 +624,21 @@ public class PongGameManager : MonoBehaviour
         }
 
         scoreText.enabled = true;
+        scoreFlashRoutine = null;
+    }
+
+    private void StopScoreFlash()
+    {
+        if (scoreFlashRoutine != null)
+        {
+            StopCoroutine(scoreFlashRoutine);
+            scoreFlashRoutine = null;
+        }
+
+        if (player1ScoreText != null)
+            player1ScoreText.enabled = true;
+        if (player2ScoreText != null)
+            player2ScoreText.enabled = true;
     }
 
     public float GetFreezeDuration(float effectiveBallSpeed)
@@ -541,6 +668,8 @@ public class PongGameManager : MonoBehaviour
 
     public void ReturnToMainMenu()
     {
+        CancelGameOverRestartPress();
+        StopScoreFlash();
         matchIntroActive = false;
         if (matchPresentation != null)
             matchPresentation.ResetPresentation();
@@ -632,6 +761,7 @@ public class PongGameManager : MonoBehaviour
 
     private void StartSelectedMode()
     {
+        Time.timeScale = 1f;
         firstQuickServe = true;
 
         mainMenuPanel.SetActive(false);

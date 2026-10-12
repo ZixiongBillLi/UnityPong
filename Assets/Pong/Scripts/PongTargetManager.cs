@@ -18,6 +18,8 @@ public class PongTargetManager : MonoBehaviour
 
     private Coroutine spawnRoutine;
     private Coroutine targetLifetimeRoutine;
+    private SpriteRenderer[] targetRenderers;
+    private bool[] targetRendererVisibility;
 
     private bool firstServe = true;
 
@@ -25,10 +27,14 @@ public class PongTargetManager : MonoBehaviour
     private bool hasLastTarget = false;
 
     private bool effectActive = false;
+    private bool matchEnded;
 
 
     public void OnBallLaunched()
     {
+        if (matchEnded)
+            return;
+
         float delay;
 
         if (firstServe)
@@ -47,6 +53,9 @@ public class PongTargetManager : MonoBehaviour
 
     public void OnGoalScored()
     {
+        if (matchEnded)
+            return;
+
         effectActive = false;
 
         StopSpawnCountdown();
@@ -56,6 +65,7 @@ public class PongTargetManager : MonoBehaviour
 
     public void ResetForNewMatch()
     {
+        matchEnded = false;
         firstServe = true;
         effectActive = false;
 
@@ -65,12 +75,31 @@ public class PongTargetManager : MonoBehaviour
         hasLastTarget = false;
     }
 
+    public void OnMatchEnded()
+    {
+        matchEnded = true;
+        effectActive = false;
+        StopSpawnCountdown();
+        StopTargetLifetime();
+
+        // A blink may have hidden the target. Restore its original renderer states
+        // without destroying the target or enabling intentionally hidden visuals.
+        if (currentTarget == null || targetRenderers == null)
+            return;
+
+        for (int i = 0; i < targetRenderers.Length; i++)
+        {
+            if (targetRenderers[i] != null)
+                targetRenderers[i].enabled = targetRendererVisibility[i];
+        }
+    }
+
 
     private void StartSpawnCountdown(float delay)
     {
         StopSpawnCountdown();
 
-        if (effectActive){return;}
+        if (effectActive || matchEnded){return;}
 
         spawnRoutine = StartCoroutine( SpawnAfterDelay(delay));
     }
@@ -88,6 +117,9 @@ public class PongTargetManager : MonoBehaviour
 
     private void SpawnTarget()
 {
+    if (matchEnded)
+        return;
+
     TargetType nextType = GetNextTargetType();
 
     float minX = settings.targetMinX;
@@ -134,7 +166,10 @@ public class PongTargetManager : MonoBehaviour
 
     private IEnumerator TargetLifetime()
     {
-        SpriteRenderer[] targetRenderers = currentTarget.GetComponentsInChildren<SpriteRenderer>(true);
+        targetRenderers = currentTarget.GetComponentsInChildren<SpriteRenderer>(true);
+        targetRendererVisibility = new bool[targetRenderers.Length];
+        for (int i = 0; i < targetRenderers.Length; i++)
+            targetRendererVisibility[i] = targetRenderers[i].enabled;
 
         yield return new WaitForSeconds(settings.targetBlinkStartTime);
 
@@ -156,11 +191,7 @@ public class PongTargetManager : MonoBehaviour
 
         targetLifetimeRoutine = null;
 
-        if (currentTarget != null)
-        {
-            Destroy(currentTarget);
-            currentTarget = null;
-        }
+        ClearCurrentTarget();
 
         StartSpawnCountdown(settings.targetRespawnDelay);
     }
@@ -168,16 +199,24 @@ public class PongTargetManager : MonoBehaviour
 
     private void ClearCurrentTarget()
     {
-        if (targetLifetimeRoutine != null)
-        {
-            StopCoroutine(targetLifetimeRoutine);
-            targetLifetimeRoutine = null;
-        }
+        StopTargetLifetime();
 
         if (currentTarget != null)
         {
             Destroy(currentTarget);
             currentTarget = null;
+        }
+
+        targetRenderers = null;
+        targetRendererVisibility = null;
+    }
+
+    private void StopTargetLifetime()
+    {
+        if (targetLifetimeRoutine != null)
+        {
+            StopCoroutine(targetLifetimeRoutine);
+            targetLifetimeRoutine = null;
         }
     }
 
@@ -218,35 +257,38 @@ public class PongTargetManager : MonoBehaviour
 
     private TargetType GetNextTargetType()
     {
-        return TargetType.Portal;
+        // return TargetType.Portal;
         // return TargetType.Mirage;
         // return TargetType.Freeze;
         // return TargetType.Bomb;
         // return TargetType.Fire;
-        // TargetType[] targetTypes =
-        //     (TargetType[])System.Enum.GetValues(
-        //         typeof(TargetType)
-        //     );
+        TargetType[] targetTypes =
+            (TargetType[])System.Enum.GetValues(
+                typeof(TargetType)
+            );
 
-        // TargetType nextType;
+        TargetType nextType;
 
-        // do
-        // {
-        //     int randomIndex = Random.Range(0, targetTypes.Length);
+        do
+        {
+            int randomIndex = Random.Range(0, targetTypes.Length);
 
-        //     nextType = targetTypes[randomIndex];
-        // }
-        // while (hasLastTarget && nextType == lastTargetType
-        // );
+            nextType = targetTypes[randomIndex];
+        }
+        while (hasLastTarget && nextType == lastTargetType
+        );
 
-        // lastTargetType = nextType;
-        // hasLastTarget = true;
+        lastTargetType = nextType;
+        hasLastTarget = true;
 
-        // return nextType;
+        return nextType;
     }
 
     public void OnTargetCollected()
     {
+        if (matchEnded)
+            return;
+
         effectActive = true;
 
         StopSpawnCountdown();
@@ -255,7 +297,7 @@ public class PongTargetManager : MonoBehaviour
 
     public void OnEffectEnded()
     {
-        if (!effectActive)
+        if (matchEnded || !effectActive)
         {
             return;
         }
