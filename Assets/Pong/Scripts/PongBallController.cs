@@ -22,8 +22,6 @@ public class PongBallController : MonoBehaviour
 
     public PongTargetManager targetManager;
 
-
-
     private bool hasActiveEffect = false;
     private TargetType activeEffect;
     private Coroutine effectRoutine;
@@ -44,9 +42,10 @@ public class PongBallController : MonoBehaviour
     public PongMirageVisuals mirageVisuals;
 
     private bool isTeleporting = false;
-    private SpriteRenderer ballRenderer;
+    public GameObject ballVisual;
 
-    public GameObject portalExitVisualPrefab;
+    public GameObject portalVisualPrefab;
+    private GameObject activePortalVisual;
 
     private PongBombVisuals bombVisuals;
     private PongFireVisuals fireVisuals;
@@ -54,7 +53,6 @@ public class PongBallController : MonoBehaviour
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
-        ballRenderer = GetComponent<SpriteRenderer>();
         bombVisuals = GetComponent<PongBombVisuals>();
         fireVisuals = GetComponent<PongFireVisuals>();
     }
@@ -295,6 +293,14 @@ public class PongBallController : MonoBehaviour
         {
             mirageVisuals.StopMirage();
         }
+        else if (activeEffect == TargetType.Portal)
+        {
+            isTeleporting = false;
+
+            SetBallVisible(true);
+
+            ClearPortalVisual();
+        }
 
 
         hasActiveEffect = false;
@@ -449,43 +455,127 @@ public class PongBallController : MonoBehaviour
     }
 
     private IEnumerator PortalEffectRoutine(Vector2 entrancePosition)
-    {
-        isTeleporting = true;
+{
+    isTeleporting = true;
 
-        Vector2 savedDirection = direction;
+    Vector2 savedDirection = direction;
 
-        Vector2 exitPosition = targetManager.GetPortalExitPosition(entrancePosition, savedDirection);
+    Vector2 exitPosition =
+        targetManager.GetPortalExitPosition(
+            entrancePosition,
+            savedDirection
+        );
 
-        SetBallVisible(false);
 
-        yield return new WaitForSeconds(settings.portalTravelDelay);
+    // =====================================================
+    // Entrance
+    // =====================================================
 
-        rb.MovePosition(exitPosition);
+    // Ball disappears immediately.
+    SetBallVisible(false);
 
-        GameObject exitVisual = Instantiate(portalExitVisualPrefab, exitPosition, Quaternion.identity);
 
-        yield return new WaitForSeconds(settings.portalExitDelay);
+    // Create a visual-only copy of the entrance portal.
+    activePortalVisual = Instantiate(
+        portalVisualPrefab,
+        entrancePosition,
+        Quaternion.identity
+    );
 
-        direction = savedDirection;
+    PongPortalVisuals entranceVisual =
+        activePortalVisual.GetComponent<PongPortalVisuals>();
 
-        SetBallVisible(true);
 
-        isTeleporting = false;
 
-        float remainingVisualTime = settings.portalExitVisualLifetime - settings.portalExitDelay;
+    // Flash disappears first, then portal shrinks away.
+    yield return entranceVisual.PlayEntranceDisappear();
 
-        remainingVisualTime = Mathf.Max(0f, remainingVisualTime);
 
-        Destroy(exitVisual, remainingVisualTime);
+    Destroy(activePortalVisual);
+    activePortalVisual = null;
 
-        effectRoutine = null;
 
-        EndActiveEffect(true);
-    }
+    // =====================================================
+    // Travel
+    // =====================================================
+
+    // The original portal travel timer begins only
+    // after the entrance animation has finished.
+    yield return new WaitForSeconds(
+        settings.portalTravelDelay
+    );
+
+
+    // Teleport the invisible ball immediately.
+    rb.position = exitPosition;
+
+
+    // =====================================================
+    // Exit
+    // =====================================================
+
+    activePortalVisual = Instantiate(
+        portalVisualPrefab,
+        exitPosition,
+        Quaternion.identity
+    );
+
+    PongPortalVisuals exitVisual =
+        activePortalVisual.GetComponent<PongPortalVisuals>();
+
+
+    // Portal grows back using the same scale duration.
+    yield return exitVisual.PlayPortalAppear();
+
+
+    // Wait before the ball comes back.
+    yield return new WaitForSeconds(
+        settings.portalExitDelay
+    );
+
+
+    // =====================================================
+    // Ball returns
+    // =====================================================
+
+    direction = savedDirection;
+
+    SetBallVisible(true);
+
+    // Ball may move again.
+    isTeleporting = false;
+
+
+    // Ball and flash appear at the same time.
+    exitVisual.StartFlash();
+
+
+    // Keep the portal visible after the ball returns.
+    yield return new WaitForSeconds(
+        settings.portalExitVisualLifetime
+    );
+
+
+    // By this point the flash has already disappeared.
+    yield return exitVisual.PlayPortalDisappear();
+
+
+    Destroy(activePortalVisual);
+    activePortalVisual = null;
+
+
+    // =====================================================
+    // Finish effect
+    // =====================================================
+
+    effectRoutine = null;
+
+    EndActiveEffect(true);
+}
 
     private void SetBallVisible(bool visible)
     {
-        ballRenderer.enabled = visible;
+        ballVisual.SetActive(visible);
     }
 
 
@@ -500,4 +590,16 @@ public class PongBallController : MonoBehaviour
 
         return direction * effectiveSpeed;
     }
+
+    private void ClearPortalVisual()
+    {
+        if (activePortalVisual != null)
+        {
+            Destroy(activePortalVisual);
+
+            activePortalVisual = null;
+        }
+    }
+
+    
 }

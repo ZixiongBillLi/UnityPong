@@ -27,39 +27,21 @@ public class PongTargetPickup : MonoBehaviour
         targetType = type;
         targetManager = manager;
 
-        // UpdatePlaceholderColor();
     }
-
-    // private void UpdatePlaceholderColor()
-    // {
-    //     switch (targetType)
-    //     {
-    //         case TargetType.Freeze:
-    //             spriteRenderer.color = Color.cyan;
-    //             break;
-
-    //         case TargetType.Fire:
-    //             spriteRenderer.color = new Color(1f, 0.3f, 0f);
-    //             break;
-
-    //         case TargetType.Bomb:
-    //             spriteRenderer.color = Color.gray;
-    //             break;
-
-    //         case TargetType.Mirage:
-    //             spriteRenderer.color = new Color(0.7f, 0.3f, 1f);
-    //             break;
-
-    //         case TargetType.Portal:
-    //             spriteRenderer.color = Color.magenta;
-    //             break;
-    //     }
-    // }
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        PongBallController ball = other.GetComponent<PongBallController>();
+        PongBallController ball = null;
 
+        if (other.attachedRigidbody != null)
+        {
+            ball = other.attachedRigidbody.GetComponent<PongBallController>();
+        }
+
+        if (ball == null)
+        {
+            ball = other.GetComponentInParent<PongBallController>();
+        }
         if (ball == null)
         {
             return;

@@ -7,8 +7,8 @@ public class PongSettings : MonoBehaviour
     public float playfieldBottom = -5f;
     public float playfieldCenterY = -0.5f;
 
-    public float paddleMinY = -2.75f;
-    public float paddleMaxY = 1.75f;
+    public float paddleMinY = -2.55f;
+    public float paddleMaxY = 1.55f;
 
     // Match
     public int legacyWinScore = 50;

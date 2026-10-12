@@ -151,7 +151,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8156306cb4e8ff94a86280626542515f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PongPaddleController
-  player: 0
+  controlScheme: 0
   inputActions: {fileID: -944628639613478452, guid: 3590b91b4603b465dbb4216d601bff33, type: 3}
   settings: {fileID: 0}
   ball: {fileID: 0}

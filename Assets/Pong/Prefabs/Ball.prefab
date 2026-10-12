@@ -169,5 +169,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0ba002a436fba3c428a136da1b2a388b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PongBallController
-  speed: 5
+  settings: {fileID: 0}
+  gameManager: {fileID: 0}
+  currentBaseSpeed: 0
+  temporarySpeedBonus: 0
   inputActions: {fileID: -944628639613478452, guid: 3590b91b4603b465dbb4216d601bff33, type: 3}
+  paddleHitCount: 0
+  targetManager: {fileID: 0}
+  mirageVisuals: {fileID: 0}
+  portalExitVisualPrefab: {fileID: 0}

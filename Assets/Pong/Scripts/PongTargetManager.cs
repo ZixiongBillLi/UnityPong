@@ -10,7 +10,7 @@ public class PongTargetManager : MonoBehaviour
     public GameObject fireTargetPrefab;
     public GameObject bombTargetPrefab;
     public GameObject mirageTargetPrefab;
-    // public GameObject portalTargetPrefab;
+    public GameObject portalTargetPrefab;
 
     public Camera gameCamera;
 
@@ -208,8 +208,8 @@ public class PongTargetManager : MonoBehaviour
             case TargetType.Mirage:
                 return mirageTargetPrefab;
 
-            // case TargetType.Portal:
-            //     return portalTargetPrefab;
+            case TargetType.Portal:
+                return portalTargetPrefab;
 
             default:
                 return null;
@@ -218,11 +218,11 @@ public class PongTargetManager : MonoBehaviour
 
     private TargetType GetNextTargetType()
     {
-        // return TargetType.Portal;
+        return TargetType.Portal;
         // return TargetType.Mirage;
         // return TargetType.Freeze;
         // return TargetType.Bomb;
-        return TargetType.Fire;
+        // return TargetType.Fire;
         // TargetType[] targetTypes =
         //     (TargetType[])System.Enum.GetValues(
         //         typeof(TargetType)

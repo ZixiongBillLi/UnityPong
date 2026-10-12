@@ -3,18 +3,12 @@ using TMPro;
 using UnityEngine.InputSystem;
 using System.Collections;
 using UnityEngine.UI;
+using UnityEngine.Serialization;
 
 public enum GameMode
 {
     Legacy,
     Timed
-}
-
-public enum SideSelectState
-{
-    WaitingForPlayer1,
-    ChoosingSide,
-    ReadyToStart
 }
 
 public class PongGameManager : MonoBehaviour
@@ -81,11 +75,9 @@ public class PongGameManager : MonoBehaviour
 
     public GameObject sideSelectPanel;
 
-    public TMP_Text sideSelectPromptText;
 
     private ControlScheme player1ControlScheme;
     private ControlScheme player2ControlScheme;
-    private bool sideSelectionComplete = false;
 
     private PaddleSide player1Side;
     private PaddleSide player2Side;
@@ -96,28 +88,12 @@ public class PongGameManager : MonoBehaviour
     public PongPaddleVisuals leftPaddleVisuals;
     public PongPaddleVisuals rightPaddleVisuals;
 
-    private SideSelectState sideSelectState;
 
-    private InputAction adChooseLeftAction;
-    private InputAction adChooseRightAction;
 
-    private InputAction arrowChooseLeftAction;
-    private InputAction arrowChooseRightAction;
-    private InputAction sideConfirmAction;
 
-    public RectTransform leftCharacter;
-    public RectTransform rightCharacter;
 
-    public Outline leftCharacterOutline;
-    public Outline rightCharacterOutline;
 
-    public TMP_Text playerLabel;
-    public RectTransform selectionArrow;
-    public TMP_Text controlSchemeText;
 
-    public TMP_Text player2Label;
-    public TMP_Text player2ControlSchemeText;
-    private Vector2 arrowBasePosition;
 
 
     public GameObject pauseMenuPanel;
@@ -142,8 +118,10 @@ public class PongGameManager : MonoBehaviour
 
     private bool resumeShouldAutoServe = false;
 
-    private Vector3 leftCharacterBaseScale;
-    private Vector3 rightCharacterBaseScale;
+
+    [FormerlySerializedAs("modeSelectPanel")]
+    public GameObject timedSetupPanel;
+    
     
 
     private void Start()
@@ -157,8 +135,6 @@ public class PongGameManager : MonoBehaviour
         pauseAction = pongMap.FindAction("Pause");
         pauseAction.Enable();
 
-        leftCharacterBaseScale = leftCharacter.localScale;
-        rightCharacterBaseScale = rightCharacter.localScale;
 
         pauseMenuPanel.SetActive(false);
         returnToMenuConfirmPanel.SetActive(false);
@@ -175,17 +151,6 @@ public class PongGameManager : MonoBehaviour
 
         ball.enabled = false;
 
-        InputActionMap sideSelectMap = inputActions.FindActionMap("SideSelect");
-
-        adChooseLeftAction = sideSelectMap.FindAction("WSChooseLeft");
-
-        adChooseRightAction = sideSelectMap.FindAction("WSChooseRight");
-
-        arrowChooseLeftAction = sideSelectMap.FindAction("ArrowChooseLeft");
-
-        arrowChooseRightAction = sideSelectMap.FindAction("ArrowChooseRight");
-
-        sideConfirmAction = sideSelectMap.FindAction("Confirm");
 
         UpdateScoreText();
         UpdateBallValueText();
@@ -241,8 +206,6 @@ public class PongGameManager : MonoBehaviour
 
         if (sideSelectPanel.activeSelf)
         {
-            CheckSideSelection();
-            UpdateSelectionArrow();
 
             return;
         }
@@ -269,6 +232,26 @@ public class PongGameManager : MonoBehaviour
 
             UpdateTimerText();
         }
+    }
+
+    private void SetMenuPanel(GameObject panel)
+    {
+        HideApplySuccessFeedback();
+
+
+        mainMenuPanel.SetActive(panel == mainMenuPanel);
+        timedSetupPanel.SetActive(panel == timedSetupPanel);
+        legacyCustomizePanel.SetActive(panel == legacyCustomizePanel);
+        unsavedChangesPanel.SetActive(panel == unsavedChangesPanel);
+
+        sideSelectPanel.SetActive(false);
+        gameOverPanel.SetActive(false);
+        hudPanel.SetActive(false);
+        gameplayRoot.SetActive(false);
+    }
+    public void ShowTimedSetup()
+    {
+        SetMenuPanel(timedSetupPanel);
     }
 
     public void ScorePoint(int player)
@@ -510,21 +493,14 @@ public class PongGameManager : MonoBehaviour
 
         return Mathf.Lerp(settings.freezeMaxDuration, settings.freezeMinDuration, speedProgress);
     }
-
     public void ShowModeSelect()
     {
-        mainMenuPanel.SetActive(false);
-        modeSelectPanel.SetActive(true);
-        legacyCustomizePanel.SetActive(false);
-
-        hudPanel.SetActive(false);
-        gameplayRoot.SetActive(false);
+        ShowTimedSetup();
     }
 
     public void ShowMainMenu()
     {
-        modeSelectPanel.SetActive(false);
-        mainMenuPanel.SetActive(true);
+        SetMenuPanel(mainMenuPanel);
     }
 
     public void ReturnToMainMenu()
@@ -605,7 +581,7 @@ public class PongGameManager : MonoBehaviour
         totalTime = duration;
         remainingTime = duration;
 
-        quickMode = quickModeToggle.isOn;
+        quickMode = quickModeToggle != null && quickModeToggle.isOn;
 
         ShowSideSelect();
     }
@@ -651,11 +627,7 @@ public class PongGameManager : MonoBehaviour
 
     public void ShowLegacyCustomize()
     {
-        modeSelectPanel.SetActive(false);
-        legacyCustomizePanel.SetActive(true);
-        unsavedChangesPanel.SetActive(false);
-
-        HideApplySuccessFeedback();
+        SetMenuPanel(legacyCustomizePanel);
 
         legacyScoreInput.text = settings.legacyWinScore.ToString();
         UpdateLegacyCustomizeText();
@@ -678,10 +650,12 @@ public class PongGameManager : MonoBehaviour
             return;
         }
 
-        HideApplySuccessFeedback();
+        ShowMainMenu();
 
-        legacyCustomizePanel.SetActive(false);
-        modeSelectPanel.SetActive(true);
+        // HideApplySuccessFeedback();
+
+        // legacyCustomizePanel.SetActive(false);
+        // modeSelectPanel.SetActive(true);
     }
 
     public void SubmitLegacyScore(string inputText)
@@ -771,8 +745,9 @@ public class PongGameManager : MonoBehaviour
 
     public void BackFromLegacyCustomize()
     {
-        legacyCustomizePanel.SetActive(false);
-        modeSelectPanel.SetActive(true);
+        RequestBackFromLegacyCustomize();
+        // legacyCustomizePanel.SetActive(false);
+        // modeSelectPanel.SetActive(true);
     }
     private void UpdateLegacyMatchInfo()
     {
@@ -794,7 +769,7 @@ public class PongGameManager : MonoBehaviour
         }
         else
         {
-            ShowModeSelect();
+            ShowMainMenu();
         }
     }
 
@@ -813,8 +788,8 @@ public class PongGameManager : MonoBehaviour
 
     private void ShowUnsavedChangesWarning()
     {
-        legacyCustomizePanel.SetActive(false);
-        unsavedChangesPanel.SetActive(true);
+        // legacyCustomizePanel.SetActive(false);
+        // unsavedChangesPanel.SetActive(true);
 
         string inputValue = legacyScoreInput.text;
 
@@ -824,22 +799,26 @@ public class PongGameManager : MonoBehaviour
         }
 
         unsavedChangesText.text = "Changes:\n" + "Legacy Winning Score: " + settings.legacyWinScore + " → " + inputValue;
+
+        SetMenuPanel(unsavedChangesPanel);
     }
 
     public void CancelDiscardLegacyChanges()
     {
-        unsavedChangesPanel.SetActive(false);
-        legacyCustomizePanel.SetActive(true);
+        SetMenuPanel(legacyCustomizePanel);
+        // unsavedChangesPanel.SetActive(false);
+        // legacyCustomizePanel.SetActive(true);
     }
 
     public void ConfirmDiscardLegacyChanges()
     {
-        unsavedChangesPanel.SetActive(false);
+        // unsavedChangesPanel.SetActive(false);
 
         legacyScoreInput.text = settings.legacyWinScore.ToString();
-
-        legacyCustomizePanel.SetActive(false);
-        modeSelectPanel.SetActive(true);
+        
+        ShowMainMenu();
+        // legacyCustomizePanel.SetActive(false);
+        // modeSelectPanel.SetActive(true);
     }
 
     public void SaveLegacyChangesAndContinue()
@@ -861,397 +840,35 @@ public class PongGameManager : MonoBehaviour
         quickMode = isOn;
     }
 
-    private void EnableSideSelectInput()
-    {
-        adChooseLeftAction.Enable();
-        adChooseRightAction.Enable();
-
-        arrowChooseLeftAction.Enable();
-        arrowChooseRightAction.Enable();
-
-        sideConfirmAction.Enable();
-    }
-
-    private void DisableSideSelectInput()
-    {
-        adChooseLeftAction.Disable();
-        adChooseRightAction.Disable();
-
-        arrowChooseLeftAction.Disable();
-        arrowChooseRightAction.Disable();
-
-        sideConfirmAction.Disable();
-    }
-
     private void ShowSideSelect()
     {
-        mainMenuPanel.SetActive(false);
-        modeSelectPanel.SetActive(false);
-        legacyCustomizePanel.SetActive(false);
-
+        SetMenuPanel(null);
         sideSelectPanel.SetActive(true);
-
-        hudPanel.SetActive(false);
-        gameplayRoot.SetActive(false);
-
-        sideSelectState = SideSelectState.WaitingForPlayer1;
-
-        playerLabel.gameObject.SetActive(false);
-        controlSchemeText.gameObject.SetActive(false);
-
-        player2Label.gameObject.SetActive(false);
-        player2ControlSchemeText.gameObject.SetActive(false);
-
-        
-        selectionArrow.gameObject.SetActive(false);
-
-        ResetSideSelectVisuals();
-
-        sideSelectPromptText.text = "Player 1: A/D or ←/→ to choose a side";
-
-        EnableSideSelectInput();
     }
 
-    private void CheckSideSelection()
+    public void StartGameFromSideSelect(PaddleSide wasdSide)
     {
-        if (sideSelectState == SideSelectState.WaitingForPlayer1)
-        {
-            CheckFirstPlayerInput();
+        if (!sideSelectPanel.activeSelf)
             return;
-        }
 
-        if (sideSelectState == SideSelectState.ChoosingSide)
-        {
-            CheckPlayer1SideInput();
-
-            if (sideConfirmAction.WasPressedThisFrame())
-            {
-                ConfirmSideSelection();
-            }
-
-            return;
-        }
-
-        if (sideSelectState == SideSelectState.ReadyToStart)
-        {
-            if (sideConfirmAction.WasPressedThisFrame())
-            {
-                StartGameFromSideSelect();
-            }
-        }
-    }
-
-    private void CompleteSideSelection(ControlScheme firstControlScheme, PaddleSide chosenSide)
-    {
-        sideSelectionComplete = true;
-
-        player1ControlScheme = firstControlScheme;
-
-        player1Side = chosenSide;
-
-        if (firstControlScheme == ControlScheme.WS)
-        {
-            player2ControlScheme = ControlScheme.Arrows;
-        }
-        else
-        {
-            player2ControlScheme = ControlScheme.WS;
-        }
-
-        if (chosenSide == PaddleSide.Left)
-        {
-            player2Side = PaddleSide.Right;
-        }
-        else
-        {
-            player2Side = PaddleSide.Left;
-        }
-
-        DisableSideSelectInput();
-
-        Debug.Log("Player 1: " + player1ControlScheme + " / " + player1Side);
-
-        Debug.Log("Player 2: " + player2ControlScheme + " / " + player2Side);
-
-        sideSelectPromptText.text = "Selection complete";
-    }
-
-    private void ResetSideSelectVisuals()
-    {
-        leftCharacter.localScale = leftCharacterBaseScale;
-
-        rightCharacter.localScale = rightCharacterBaseScale;
-
-        leftCharacterOutline.enabled = false;
-        rightCharacterOutline.enabled = false;
-    }
-
-    private void CheckFirstPlayerInput()
-    {
-        if (adChooseLeftAction.WasPressedThisFrame())
-        {
-            BeginSideSelection();
-
-            SetPlayer1Selection(
-                ControlScheme.WS,
-                PaddleSide.Left
-            );
-
-            return;
-        }
-
-        if (adChooseRightAction.WasPressedThisFrame())
-        {
-            BeginSideSelection();
-
-            SetPlayer1Selection(
-                ControlScheme.WS,
-                PaddleSide.Right
-            );
-
-            return;
-        }
-
-        if (arrowChooseLeftAction.WasPressedThisFrame())
-        {
-            BeginSideSelection();
-
-            SetPlayer1Selection(
-                ControlScheme.Arrows,
-                PaddleSide.Left
-            );
-
-            return;
-        }
-
-        if (arrowChooseRightAction.WasPressedThisFrame())
-        {
-            BeginSideSelection();
-
-            SetPlayer1Selection(
-                ControlScheme.Arrows,
-                PaddleSide.Right
-            );
-        }
-    }
-
-    private void BeginSideSelection()
-    {
-        sideSelectState = SideSelectState.ChoosingSide;
-
-        playerLabel.text = "Player 1";
-
-        playerLabel.gameObject.SetActive(true);
-        controlSchemeText.gameObject.SetActive(true);
-        selectionArrow.gameObject.SetActive(true);
-
-        sideSelectPromptText.text = "A/D or ←/→ to change side\n" + "Press Enter or Space to confirm";
-    }
-
-    private void CheckPlayer1SideInput()
-    {
-        if (adChooseLeftAction.WasPressedThisFrame())
-        {
-            SetPlayer1Selection(ControlScheme.WS, PaddleSide.Left);
-
-            return;
-        }
-
-        if (adChooseRightAction.WasPressedThisFrame())
-        {
-            SetPlayer1Selection(ControlScheme.WS, PaddleSide.Right);
-
-            return;
-        }
-
-        if (arrowChooseLeftAction.WasPressedThisFrame())
-        {
-            SetPlayer1Selection(ControlScheme.Arrows, PaddleSide.Left);
-
-            return;
-        }
-
-        if (arrowChooseRightAction.WasPressedThisFrame())
-        {
-            SetPlayer1Selection(ControlScheme.Arrows, PaddleSide.Right);
-        }
-    }
-
-    private void UpdateSelectedSideVisual()
-    {
-        ResetSideSelectVisuals();
-
-        RectTransform selectedCharacter;
-
-        if (player1Side == PaddleSide.Left)
-        {
-            selectedCharacter = leftCharacter;
-
-            leftCharacterOutline.enabled = true;
-
-            selectedCharacter.localScale = leftCharacterBaseScale * settings.selectedCharacterScale;
-        }
-        else
-        {
-            selectedCharacter = rightCharacter;
-
-            rightCharacterOutline.enabled = true;
-
-            selectedCharacter.localScale = rightCharacterBaseScale * settings.selectedCharacterScale;
-        }
-
-
-        MoveSelectionIndicator(selectedCharacter);
-    }
-
-    private void MoveSelectionIndicator(RectTransform selectedCharacter)
-    {
-        PositionPlayerInfo(selectedCharacter, playerLabel, controlSchemeText);
-
-        Vector2 characterPosition = selectedCharacter.anchoredPosition;
-
-        playerLabel.rectTransform.anchoredPosition = characterPosition + new Vector2(0f, 150f);
-
-        selectionArrow.anchoredPosition = characterPosition + new Vector2(0f, 90f);
-
-        arrowBasePosition = selectionArrow.anchoredPosition;
-    }
-    
-    private void UpdateSelectionArrow()
-    {
-        if (sideSelectState != SideSelectState.ChoosingSide || !selectionArrow.gameObject.activeSelf)
-        {
-            return;
-        }
-
-        float cycleProgress = Mathf.Repeat(Time.time, settings.selectionArrowCycle) / settings.selectionArrowCycle;
-
-        float offset = Mathf.Sin(cycleProgress * Mathf.PI * 2f);
-
-        selectionArrow.anchoredPosition = arrowBasePosition + Vector2.up * offset * settings.selectionArrowDistance;
-    }
-
-    private void ConfirmSideSelection()
-    {
-        if (player1Side == PaddleSide.Left)
-        {
-            player2Side = PaddleSide.Right;
-        }
-        else
-        {
-            player2Side = PaddleSide.Left;
-        }
-
-        if (player1ControlScheme == ControlScheme.WS)
-        {
-            player2ControlScheme =
-                ControlScheme.Arrows;
-        }
-        else
-        {
-            player2ControlScheme =
-                ControlScheme.WS;
-        }
-
-        sideSelectState =
-            SideSelectState.ReadyToStart;
-
-        selectionArrow.gameObject.SetActive(false);
-
-        leftCharacter.localScale = leftCharacterBaseScale * settings.selectedCharacterScale;
-
-        rightCharacter.localScale = rightCharacterBaseScale * settings.selectedCharacterScale;
-
-        leftCharacterOutline.enabled = true;
-        rightCharacterOutline.enabled = true;
-
-        playerLabel.gameObject.SetActive(true);
-        controlSchemeText.gameObject.SetActive(true);
-
-        player2Label.text = "Player 2";
-
-        player2ControlSchemeText.text = GetControlSchemeText(player2ControlScheme);
-
-        player2Label.gameObject.SetActive(true);
-        player2ControlSchemeText.gameObject.SetActive(true);
-
-        RectTransform player1Character;
-        RectTransform player2Character;
-
-        if (player1Side == PaddleSide.Left)
-        {
-            player1Character = leftCharacter;
-            player2Character = rightCharacter;
-        }
-        else
-        {
-            player1Character = rightCharacter;
-            player2Character = leftCharacter;
-        }
-
-        PositionPlayerInfo(player1Character, playerLabel, controlSchemeText);
-
-        PositionPlayerInfo(player2Character, player2Label, player2ControlSchemeText);
-
-        sideSelectPromptText.text = "Press Enter or Space to start game";
-    }
-
-    private void StartGameFromSideSelect()
-    {
-        DisableSideSelectInput();
+        player1ControlScheme = ControlScheme.WS;
+        player2ControlScheme = ControlScheme.Arrows;
+        player1Side = wasdSide;
+        player2Side = wasdSide == PaddleSide.Left
+            ? PaddleSide.Right : PaddleSide.Left;
 
         ApplySideSelectionMapping();
-
         sideSelectPanel.SetActive(false);
-
         StartSelectedMode();
     }
 
-    private void SetPlayer1Selection(ControlScheme controlScheme, PaddleSide side)
+    public void BackFromSideSelect()
     {
-        player1ControlScheme = controlScheme;
-        player1Side = side;
+        if (!sideSelectPanel.activeSelf)
+            return;
 
-        if (player1ControlScheme == ControlScheme.WS)
-        {
-            player2ControlScheme = ControlScheme.Arrows;
-        }
-        else
-        {
-            player2ControlScheme = ControlScheme.WS;
-        }
-
-        UpdateSelectedSideVisual();
-        UpdateControlSchemeDisplay();
-    }
-
-    private void UpdateControlSchemeDisplay()
-    {
-        controlSchemeText.gameObject.SetActive(true);
-
-        controlSchemeText.text =
-            GetControlSchemeText(
-                player1ControlScheme
-            );
-    }
-
-    private string GetControlSchemeText(ControlScheme controlScheme)
-    {
-        if (controlScheme == ControlScheme.WS)
-        {
-            return "(W/S)";
-        }
-
-        return "(↑/↓)";
-    }
-
-    private void PositionPlayerInfo(RectTransform character, TMP_Text playerText, TMP_Text controlsText)
-    {
-        Vector2 characterPosition = character.anchoredPosition;
-
-        playerText.rectTransform.anchoredPosition = characterPosition + new Vector2(0f, 150f);
-
-        controlsText.rectTransform.anchoredPosition = characterPosition + new Vector2(0f, 120f);
+        SetMenuPanel(gameMode == GameMode.Timed
+            ? timedSetupPanel : mainMenuPanel);
     }
 
     private void ApplySideSelectionMapping()
