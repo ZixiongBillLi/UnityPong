@@ -33,9 +33,21 @@ public class PongPaddleVisuals : MonoBehaviour
     private Coroutine hitRoutine;
 
     private bool anticipatingHit = false;
+    private bool initialized;
+    private bool presentationHidden;
+
+    public SpriteRenderer ReadyRenderer => readyVisual != null
+        ? readyVisual.GetComponentInChildren<SpriteRenderer>(true) : null;
 
     private void Awake()
     {
+        Initialize();
+    }
+
+    private void Initialize()
+    {
+        if (initialized)
+            return;
         if (visualRoot == null)
         {
             visualRoot = transform;
@@ -52,6 +64,7 @@ public class PongPaddleVisuals : MonoBehaviour
         }
 
         visualStartLocalPos = visualRoot.localPosition;
+        initialized = true;
 
         SetReady();
 
@@ -64,7 +77,7 @@ public class PongPaddleVisuals : MonoBehaviour
 
     private void Update()
     {
-        if (Time.timeScale == 0f)
+        if (presentationHidden || Time.timeScale == 0f)
         {
             return;
         }
@@ -283,6 +296,21 @@ public class PongPaddleVisuals : MonoBehaviour
 
     public void SetSweat(bool visible)
     {
-        sweatDrop.SetActive(visible);
+        if (sweatDrop != null)
+            sweatDrop.SetActive(visible);
+    }
+
+    public void SetPresentationHidden(bool hidden)
+    {
+        Initialize();
+        if (hitRoutine != null)
+            StopCoroutine(hitRoutine);
+        hitRoutine = null;
+        anticipatingHit = false;
+        presentationHidden = hidden;
+        visualRoot.localPosition = visualStartLocalPos;
+        SetReady();
+        SetSweat(false);
+        visualRoot.gameObject.SetActive(!hidden);
     }
 }

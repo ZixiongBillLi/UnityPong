@@ -7,8 +7,8 @@ public class PongSettings : MonoBehaviour
     public float playfieldBottom = -5f;
     public float playfieldCenterY = -0.5f;
 
-    public float paddleMinY = -2.55f;
-    public float paddleMaxY = 1.55f;
+    public float paddleMinY = -2.1f;
+    public float paddleMaxY = 1.6f;
 
     // Match
     public int legacyWinScore = 50;
@@ -25,6 +25,8 @@ public class PongSettings : MonoBehaviour
     public float basePaddleSpeed = 5f;
     public float maxPaddleSpeed = 10f;
     public float ballSpeedForMaxPaddleSpeed = 12f;
+
+    [Min(0f)] public float paddleForwardDistance = 2f;
 
     // Scoring
     public int minGoalPoints = 1;
@@ -126,4 +128,23 @@ public class PongSettings : MonoBehaviour
 
     // Pause
     public float pauseCountdownStep = 0.8f;
+
+    [Header("Match entrance")]
+    [Min(0.1f)] public float sideReadyCountdownStep = 0.8f;
+    [Min(0.1f)] public float menuExitDuration = 0.65f;
+    [Min(0.1f)] public float characterTravelDuration = 0.85f;
+    [Min(0.1f)] public float selectionGlowFadeDuration = 0.45f;
+    [Min(0.1f)] public float scoreboardEntranceDuration = 0.75f;
+    [Min(0f)] public float entranceScreenMargin = 30f;
+    [Min(0f)] public float characterEntranceHopHeight = 0.5f;
+    [Min(0.1f)] public float characterEntranceHopUp = 0.45f;
+    [Min(0.1f)] public float characterEntranceFlipDuration = 0.3f;
+    [Min(0.1f)] public float characterEntranceHopDown = 0.45f;
+    [Min(0.1f)] public float ballEntranceDropDuration = 0.65f;
+    [Min(0f)] public float ballEntranceBounceHeight = 0.65f;
+    [Min(0.1f)] public float ballEntranceBounceDuration = 0.42f;
+    [Min(0.1f)] public float goalEntranceFlickerDuration = 0.7f;
+    [Range(0.01f, 1f)] public float ballShadowMinimumScale = 0.08f;
+    [Range(0f, 0.1f)] public float servePromptPulseAmount = 0.025f;
+    [Min(0.1f)] public float servePromptPulsePeriod = 1.2f;
 }

@@ -50,25 +50,54 @@ public class PongBallController : MonoBehaviour
     private PongBombVisuals bombVisuals;
     private PongFireVisuals fireVisuals;
 
+    public event System.Action Launched;
+    public event System.Action ServeReset;
+    public bool IsTeleporting => isTeleporting;
+    private Vector2 servePosition;
+    private bool initialized;
+    private bool serveInputArmed;
+
+    public Vector2 ServePosition
+    {
+        get { Initialize(); return servePosition; }
+    }
+
     private void Awake()
     {
+        Initialize();
+    }
+
+    private void Initialize()
+    {
+        if (initialized)
+            return;
         rb = GetComponent<Rigidbody2D>();
         bombVisuals = GetComponent<PongBombVisuals>();
         fireVisuals = GetComponent<PongFireVisuals>();
-    }
-
-    private void Start()
-    {
+        servePosition = transform.position;
         currentBaseSpeed = settings.baseBallSpeed;
-
         InputActionMap pongMap = inputActions.FindActionMap("Pong");
         interactAction = pongMap.FindAction("Spawn");
         interactAction.Enable();
+        initialized = true;
     }
+
+    private void OnEnable() => RequireServeInputRelease();
+
+    public void RequireServeInputRelease() => serveInputArmed = false;
 
     private void Update()
     {
-        if (!isMoving && interactAction.WasPressedThisFrame())
+        if (gameManager != null && !gameManager.CanManuallyServe)
+            return;
+
+        if (!serveInputArmed)
+        {
+            serveInputArmed = !interactAction.IsPressed();
+            return;
+        }
+
+        if (!isMoving && Time.timeScale > 0f && interactAction.WasPressedThisFrame())
         {
             LaunchBall();
         }
@@ -110,6 +139,7 @@ public class PongBallController : MonoBehaviour
         direction = new Vector2(xDirection, yDirection).normalized;
 
         isMoving = true;
+        Launched?.Invoke();
         targetManager.OnBallLaunched();
     }
 
@@ -125,6 +155,8 @@ public class PongBallController : MonoBehaviour
 
     private void OnCollisionEnter2D(Collision2D collision)
     {
+        if (!isMoving || isTeleporting)
+            return;
         Vector2 normal = collision.GetContact(0).normal;
 
         Vector2 reflectedDirection = Vector2.Reflect(direction, normal);
@@ -193,6 +225,7 @@ public class PongBallController : MonoBehaviour
 
     public void ResetBall(float newServeSpeed)
     {
+        Initialize();
         EndActiveEffect(false);
         isMoving = false;
         isFrozen = false;
@@ -205,7 +238,10 @@ public class PongBallController : MonoBehaviour
         paddleHitCount = 0;
         currentTargetValueBonus = 0;
 
-        rb.MovePosition(new Vector2(0f, settings.playfieldCenterY));
+        // The Inspector's initial Ball position is the serve/entrance landing point.
+        rb.position = servePosition;
+        RequireServeInputRelease();
+        ServeReset?.Invoke();
     }
 
     public int GetGoalPoints()
@@ -231,7 +267,7 @@ public class PongBallController : MonoBehaviour
 
     public bool TryApplyTargetEffect(TargetType type, Vector2 targetPosition)
     {
-        if (hasActiveEffect)
+        if (hasActiveEffect || !isMoving)
         {
             return false;
         }

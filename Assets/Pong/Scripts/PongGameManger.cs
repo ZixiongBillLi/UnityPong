@@ -32,7 +32,7 @@ public class PongGameManager : MonoBehaviour
     public TMP_Text unsavedChangesText;
 
     public Toggle quickModeToggle;
-    public bool quickMode = false;
+    public bool quickMode = true;
 
 
     public PongSettings settings;
@@ -102,6 +102,9 @@ public class PongGameManager : MonoBehaviour
     private InputAction pauseAction;
 
 
+    [Header("Countdown visuals")]
+    [Tooltip("Shared UI container under Canvas for Resume Countdown Text and Quick Countdown Text.")]
+    public RectTransform countdownVisuals;
     public TMP_Text resumeCountdownText;
 
     private bool resumeCountdownActive = false;
@@ -110,6 +113,8 @@ public class PongGameManager : MonoBehaviour
     public TMP_Text quickCountdownText;
 
     private Vector3 quickCountdownBaseScale;
+    private Color quickCountdownBaseColor;
+    private Coroutine goalPauseRoutine;
 
     private bool quickCountdownActive = false;
     private Coroutine quickCountdownRoutine;
@@ -121,16 +126,36 @@ public class PongGameManager : MonoBehaviour
 
     [FormerlySerializedAs("modeSelectPanel")]
     public GameObject timedSetupPanel;
+
+    [Header("Match presentation")]
+    public PongMatchPresentation matchPresentation;
+    private bool matchIntroActive;
+    public bool IsMatchIntroActive => matchIntroActive;
+    public bool CanManuallyServe => gameplayRoot != null && gameplayRoot.activeInHierarchy &&
+        !matchIntroActive && !gameOver && !goalPause && !gamePaused &&
+        !resumeCountdownActive && !quickCountdownActive && Time.timeScale > 0f &&
+        !(gameMode == GameMode.Timed && quickMode) && ball != null && ball.enabled && !ball.IsMoving();
     
     
 
     private void Start()
     {
+        // Existing scenes may still serialize the old false value. Set the startup default
+        // once, then keep the player's Toggle choice while moving between menu panels.
+        quickMode = true;
+        if (quickModeToggle != null)
+            quickModeToggle.SetIsOnWithoutNotify(true);
+
         InputActionMap pongMap = inputActions.FindActionMap("Pong");
         spawnAction = pongMap.FindAction("Spawn");
         spawnAction.Enable();
 
+        PongCountdownVisual.PrepareLayer(countdownVisuals);
+        if (resumeCountdownText != null)
+            resumeCountdownText.gameObject.SetActive(false);
         quickCountdownBaseScale = quickCountdownText.rectTransform.localScale;
+        quickCountdownBaseColor = quickCountdownText.color;
+        PongCountdownVisual.Reset(quickCountdownText, quickCountdownBaseScale, quickCountdownBaseColor);
 
         pauseAction = pongMap.FindAction("Pause");
         pauseAction.Enable();
@@ -165,6 +190,9 @@ public class PongGameManager : MonoBehaviour
     
     private void Update()
     {
+        if (matchIntroActive)
+            return;
+
         if (resumeCountdownActive)
         {
             if (pauseAction.WasPressedThisFrame())
@@ -236,6 +264,9 @@ public class PongGameManager : MonoBehaviour
 
     private void SetMenuPanel(GameObject panel)
     {
+        matchIntroActive = false;
+        if (matchPresentation != null)
+            matchPresentation.ResetPresentation();
         HideApplySuccessFeedback();
 
 
@@ -256,7 +287,7 @@ public class PongGameManager : MonoBehaviour
 
     public void ScorePoint(int player)
     {
-        if (goalPause || gameOver)
+        if (goalPause || gameOver || matchIntroActive || !gameplayRoot.activeInHierarchy || !ball.IsMoving())
         {
             return;
         }
@@ -278,7 +309,7 @@ public class PongGameManager : MonoBehaviour
 
         UpdateScoreText();
 
-        StartCoroutine(GoalPauseRoutine(player));
+        goalPauseRoutine = StartCoroutine(GoalPauseRoutine(player));
     }
 
     public void ScoreGoal(PaddleSide goalSide)
@@ -338,6 +369,11 @@ public class PongGameManager : MonoBehaviour
 
     public void RestartGame()
     {
+        gameOver = false;
+        leftPaddleController.ResetToStartPosition();
+        rightPaddleController.ResetToStartPosition();
+        leftPaddleVisuals.SetPresentationHidden(false);
+        rightPaddleVisuals.SetPresentationHidden(false);
         firstQuickServe = true;
         targetManager.ResetForNewMatch();
         goalPause = false;
@@ -505,6 +541,14 @@ public class PongGameManager : MonoBehaviour
 
     public void ReturnToMainMenu()
     {
+        matchIntroActive = false;
+        if (matchPresentation != null)
+            matchPresentation.ResetPresentation();
+        if (goalPauseRoutine != null)
+        {
+            StopCoroutine(goalPauseRoutine);
+            goalPauseRoutine = null;
+        }
         if (resumeCountdownRoutine != null)
         {
             StopCoroutine(resumeCountdownRoutine);
@@ -581,7 +625,7 @@ public class PongGameManager : MonoBehaviour
         totalTime = duration;
         remainingTime = duration;
 
-        quickMode = quickModeToggle != null && quickModeToggle.isOn;
+        quickMode = quickModeToggle == null || quickModeToggle.isOn;
 
         ShowSideSelect();
     }
@@ -622,7 +666,10 @@ public class PongGameManager : MonoBehaviour
 
         UpdateBallValueText();
 
-        BeginServePhase();
+        if (!matchIntroActive)
+            BeginServePhase();
+        else
+            ball.enabled = false;
     }
 
     public void ShowLegacyCustomize()
@@ -848,18 +895,48 @@ public class PongGameManager : MonoBehaviour
 
     public void StartGameFromSideSelect(PaddleSide wasdSide)
     {
-        if (!sideSelectPanel.activeSelf)
-            return;
+        TryStartGameFromSideSelect(wasdSide);
+    }
 
+    public bool TryStartGameFromSideSelect(PaddleSide wasdSide)
+    {
+        if (!sideSelectPanel.activeSelf || matchIntroActive)
+            return false;
+        if (matchPresentation == null || !matchPresentation.isActiveAndEnabled)
+        {
+            Debug.LogError("PongGameManager: assign an enabled Match Presentation component before starting.", this);
+            return false;
+        }
+        if (!matchPresentation.ValidateReferences())
+            return false;
+
+        matchIntroActive = true;
         player1ControlScheme = ControlScheme.WS;
         player2ControlScheme = ControlScheme.Arrows;
         player1Side = wasdSide;
-        player2Side = wasdSide == PaddleSide.Left
-            ? PaddleSide.Right : PaddleSide.Left;
-
+        player2Side = wasdSide == PaddleSide.Left ? PaddleSide.Right : PaddleSide.Left;
         ApplySideSelectionMapping();
-        sideSelectPanel.SetActive(false);
+        matchPresentation.PrepareEntrance();
         StartSelectedMode();
+        matchPresentation.PlayEntrance();
+        return true;
+    }
+
+    public void CompleteMatchEntrance()
+    {
+        if (!matchIntroActive)
+            return;
+        matchIntroActive = false;
+        ball.RequireServeInputRelease();
+        if (gameMode == GameMode.Timed && quickMode)
+        {
+            // The opening 3-2-1 happened on side selection; the first ball can now launch.
+            firstQuickServe = false;
+            ball.enabled = true;
+            ball.AutoLaunchBall();
+        }
+        else
+            BeginServePhase();
     }
 
     public void BackFromSideSelect()
@@ -900,6 +977,8 @@ public class PongGameManager : MonoBehaviour
 
     public void PauseGame()
     {
+        if (matchIntroActive)
+            return;
         if (quickCountdownActive)
         {
             CancelQuickCountdown();
@@ -946,7 +1025,7 @@ public class PongGameManager : MonoBehaviour
 
     private IEnumerator ResumeCountdownRoutine()
     {
-        resumeCountdownText.gameObject.SetActive(true);
+        PongCountdownVisual.Show(resumeCountdownText, countdownVisuals);
 
         for (int number = 3; number >= 1; number--)
         {
@@ -1020,6 +1099,8 @@ public class PongGameManager : MonoBehaviour
 
     private void BeginServePhase()
     {
+        if (matchIntroActive)
+            return;
         if (gameMode == GameMode.Timed && quickMode)
         {
             ball.enabled = false;
@@ -1063,72 +1144,11 @@ public class PongGameManager : MonoBehaviour
 
     private IEnumerator QuickCountdownRoutine()
     {
-        quickCountdownText.gameObject.SetActive(true);
-
-        float stepDuration =
-            GetQuickCountdownStep();
-
-        for (int number = 3; number >= 1; number--)
-        {
-            quickCountdownText.text = number.ToString();
-
-            Color startColor = quickCountdownText.color;
-
-            startColor.a = 1f;
-            quickCountdownText.color = startColor;
-
-            quickCountdownText.rectTransform.localScale = quickCountdownBaseScale;
-
-            float elapsedTime = 0f;
-
-            while (elapsedTime < stepDuration)
-            {
-                elapsedTime += Time.deltaTime;
-
-                float progress = Mathf.Clamp01(elapsedTime / stepDuration);
-
-
-                float scale = Mathf.Lerp(1f, settings.countdownFinalScale, progress);
-
-                quickCountdownText.rectTransform.localScale = quickCountdownBaseScale * scale;
-
-                // VFX here
-                if (elapsedTime > settings.countdownFadeStart)
-                {
-                    float fadeDuration = stepDuration - settings.countdownFadeStart;
-
-                    float fadeProgress = 1f;
-
-                    if (fadeDuration > 0f)
-                    {
-                        fadeProgress = (elapsedTime - settings.countdownFadeStart) / fadeDuration;
-
-                        fadeProgress = Mathf.Clamp01(fadeProgress);
-                    }
-
-                    float alpha =
-                        Mathf.Lerp(1f, settings.countdownFinalAlpha, fadeProgress);
-
-                    Color color = quickCountdownText.color;
-
-                    color.a = alpha;
-
-                    quickCountdownText.color = color;
-                }
-
-                yield return null;
-            }
-        }
-        
-        quickCountdownText.rectTransform.localScale = quickCountdownBaseScale;
-
-        quickCountdownText.gameObject.SetActive(false);
-
+        yield return PongCountdownVisual.Play(quickCountdownText, settings, GetQuickCountdownStep(),
+            quickCountdownBaseScale, quickCountdownBaseColor, false, countdownVisuals);
         quickCountdownActive = false;
         quickCountdownRoutine = null;
-
         firstQuickServe = false;
-
         ball.enabled = true;
         ball.AutoLaunchBall();
     }
@@ -1143,6 +1163,6 @@ public class PongGameManager : MonoBehaviour
 
         quickCountdownActive = false;
 
-        quickCountdownText.gameObject.SetActive(false);
+        PongCountdownVisual.Reset(quickCountdownText, quickCountdownBaseScale, quickCountdownBaseColor);
     }
 }

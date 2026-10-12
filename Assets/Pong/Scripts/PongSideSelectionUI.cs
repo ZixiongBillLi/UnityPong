@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -28,6 +30,8 @@ public class PongSideSelectionUI : MonoBehaviour
 
     // Optional: Escape also works when no Back button is assigned.
     [SerializeField] private Button backButton;
+    [Tooltip("May reuse the Game Manager's Quick Countdown Text; leave empty to use it automatically.")]
+    [SerializeField] private TMP_Text readyCountdownText;
     [SerializeField, Range(0f, 1f)] private float idleGlowAlpha = 0.35f;
     [SerializeField, Range(0f, 1f)] private float readyGlowAlpha = 1f;
     [SerializeField, Min(0f)] private float arrowDistance = 6f;
@@ -43,6 +47,12 @@ public class PongSideSelectionUI : MonoBehaviour
     private bool inputArmed;
     private bool leaving;
     private bool sessionOpen;
+    private Coroutine readyCountdownRoutine;
+    private Vector3 countdownBaseScale;
+    private Color countdownBaseColor;
+
+    private TMP_Text CountdownText => readyCountdownText != null
+        ? readyCountdownText : gameManager != null ? gameManager.quickCountdownText : null;
 
     private void OnEnable()
     {
@@ -60,6 +70,9 @@ public class PongSideSelectionUI : MonoBehaviour
         left.arrowPosition = left.selectionArrow.anchoredPosition;
         right.arrowPosition = right.selectionArrow.anchoredPosition;
         sessionOpen = true;
+        countdownBaseScale = CountdownText.rectTransform.localScale;
+        countdownBaseColor = CountdownText.color;
+        PongCountdownVisual.Reset(CountdownText, countdownBaseScale, countdownBaseColor);
 
         wasdOnLeft = true;
         wasdReady = false;
@@ -78,6 +91,7 @@ public class PongSideSelectionUI : MonoBehaviour
     private bool ReferencesAssigned()
     {
         return gameManager != null && menuNavigation != null &&
+            gameManager.settings != null && CountdownText != null &&
             wasdKeysSprite != null && arrowKeysSprite != null &&
             Assigned(left) && Assigned(right);
     }
@@ -94,11 +108,12 @@ public class PongSideSelectionUI : MonoBehaviour
         if (!sessionOpen)
             return;
         sessionOpen = false;
+        CancelReadyCountdown();
         CancelPresses();
         RestoreArrow(left);
         RestoreArrow(right);
 
-        if (menuNavigation != null)
+        if (menuNavigation != null && (gameManager == null || !gameManager.IsMatchIntroActive))
             menuNavigation.SetExclusiveScreenInput(false);
 
         if (EventSystem.current != null)
@@ -111,10 +126,17 @@ public class PongSideSelectionUI : MonoBehaviour
 
     private void OnApplicationFocus(bool hasFocus)
     {
+        if (!sessionOpen || leaving)
+            return;
         if (!hasFocus)
         {
+            CancelReadyCountdown();
             CancelPresses();
             inputArmed = false;
+            wasdReady = false;
+            arrowsReady = false;
+            if (sessionOpen && !leaving)
+                Refresh();
         }
     }
 
@@ -129,6 +151,10 @@ public class PongSideSelectionUI : MonoBehaviour
         Keyboard keys = Keyboard.current;
         if (keys == null)
         {
+            CancelReadyCountdown();
+            wasdReady = false;
+            arrowsReady = false;
+            Refresh();
             CancelPresses();
             inputArmed = false;
             return;
@@ -141,6 +167,13 @@ public class PongSideSelectionUI : MonoBehaviour
         // Ignore the press used to open this panel, and cancel on mouse takeover.
         if (!inputArmed || mouseHeld)
         {
+            if (mouseHeld && readyCountdownRoutine != null)
+            {
+                CancelReadyCountdown();
+                wasdReady = false;
+                arrowsReady = false;
+                Refresh();
+            }
             CancelPresses();
             inputArmed = !mouseHeld && !wsHeld && !arrowsHeld &&
                 !keys.escapeKey.isPressed;
@@ -149,6 +182,7 @@ public class PongSideSelectionUI : MonoBehaviour
 
         if (keys.escapeKey.wasPressedThisFrame)
         {
+            CancelReadyCountdown();
             CancelPresses();
             backPress = true;
         }
@@ -174,6 +208,7 @@ public class PongSideSelectionUI : MonoBehaviour
             if ((wsMove != 0 || arrowsMove != 0) && requestedLeft != wasdOnLeft)
             {
                 wasdOnLeft = requestedLeft;
+                CancelReadyCountdown();
                 wasdReady = false;
                 arrowsReady = false;
                 CancelPresses();
@@ -185,10 +220,16 @@ public class PongSideSelectionUI : MonoBehaviour
 
         // Ready input no longer depends on a UI Button.
         if (keys.spaceKey.wasPressedThisFrame)
+        {
+            CancelReadyCountdown();
             wasdPress = true;
+        }
 
         if (keys.enterKey.wasPressedThisFrame || keys.numpadEnterKey.wasPressedThisFrame)
+        {
+            CancelReadyCountdown();
             arrowsPress = true;
+        }
 
         UpdateHeldVisuals();
 
@@ -223,10 +264,46 @@ public class PongSideSelectionUI : MonoBehaviour
 
         if (wasdReady && arrowsReady)
         {
-            leaving = true;
-            gameManager.StartGameFromSideSelect(
-                wasdOnLeft ? PaddleSide.Left : PaddleSide.Right);
+            readyCountdownRoutine = StartCoroutine(ReadyCountdownRoutine());
         }
+        else
+            CancelReadyCountdown();
+    }
+
+    private IEnumerator ReadyCountdownRoutine()
+    {
+        yield return PongCountdownVisual.Play(CountdownText, gameManager.settings,
+            gameManager.settings.sideReadyCountdownStep, countdownBaseScale, countdownBaseColor, true,
+            gameManager.countdownVisuals);
+        readyCountdownRoutine = null;
+
+        // Update processes cancellations before the coroutine can commit the transition.
+        if (!wasdReady || !arrowsReady || wasdPress || arrowsPress || backPress || !inputArmed)
+            yield break;
+
+        if (!gameManager.TryStartGameFromSideSelect(wasdOnLeft ? PaddleSide.Left : PaddleSide.Right))
+        {
+            wasdReady = false;
+            arrowsReady = false;
+            Refresh();
+        }
+    }
+
+    private void CancelReadyCountdown()
+    {
+        if (readyCountdownRoutine != null)
+            StopCoroutine(readyCountdownRoutine);
+        readyCountdownRoutine = null;
+        PongCountdownVisual.Reset(CountdownText, countdownBaseScale, countdownBaseColor);
+    }
+
+    public void LockForEntrance()
+    {
+        leaving = true;
+        CancelReadyCountdown();
+        CancelPresses();
+        RestoreArrow(left);
+        RestoreArrow(right);
     }
 
     public void Back()
@@ -234,6 +311,7 @@ public class PongSideSelectionUI : MonoBehaviour
         if (leaving || !isActiveAndEnabled)
             return;
         leaving = true;
+        CancelReadyCountdown();
         CancelPresses();
         gameManager.BackFromSideSelect();
     }
