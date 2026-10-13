@@ -52,7 +52,7 @@ public class PongSettings : MonoBehaviour
     // Target spawn region
     public float targetMinX = 0.25f;
     public float targetMaxX = 0.75f;
-    public float targetMinY = 0.135f;
+    public float targetMinY = 0.19f;
     public float targetMaxY = 0.765f;
 
     // Freeze

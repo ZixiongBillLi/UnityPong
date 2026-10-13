@@ -4662,7 +4662,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 100
   m_MaskInteraction: 0
   m_Sprite: {fileID: -5024041077371057755, guid: fdad29951933eeb45a77d277d557c725, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -5739,7 +5739,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 100
   m_MaskInteraction: 0
   m_Sprite: {fileID: -7497555135174277223, guid: dec374cb5845e7042bad563d1a1d69d8, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -6515,7 +6515,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 100
   m_MaskInteraction: 0
   m_Sprite: {fileID: 7413193090304588814, guid: da0a33868719afa43bbd974e9a3574c9, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -6616,11 +6616,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1541306796317830574, guid: f5c2920b8288f5749a696301da82caf9, type: 3}
       propertyPath: m_Size.x
-      value: 2.0817776
+      value: 4.687998
       objectReference: {fileID: 0}
     - target: {fileID: 1541306796317830574, guid: f5c2920b8288f5749a696301da82caf9, type: 3}
       propertyPath: m_Offset.x
-      value: 0.5440463
+      value: 1.847156
       objectReference: {fileID: 0}
     - target: {fileID: 2419510588201629092, guid: f5c2920b8288f5749a696301da82caf9, type: 3}
       propertyPath: ball
@@ -12483,7 +12483,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 100
   m_MaskInteraction: 0
   m_Sprite: {fileID: -7669868552007272653, guid: 2924dcd7d97e07940a516cf51f12f89c, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -12786,7 +12786,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 100
   m_MaskInteraction: 0
   m_Sprite: {fileID: 8562904957644875088, guid: fdad29951933eeb45a77d277d557c725, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -13471,7 +13471,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 100
   m_MaskInteraction: 0
   m_Sprite: {fileID: 8941868325294591552, guid: c1a7ccfb4bc7f684aa137239614da47c, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -15330,7 +15330,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 100
   m_MaskInteraction: 0
   m_Sprite: {fileID: -7055547815059140188, guid: 179d83fdf058eab43b9bfae218eb9757, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -15432,6 +15432,46 @@ MonoBehaviour:
   heightRoot: {fileID: 1323883241}
   shadow: {fileID: 2139160640}
   flightShadowScale: 0.8
+--- !u!114 &1932559629
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 394668346}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f02190e0469bd754fafc4653b17d317c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PongBallTrail
+  visualAnchor: {fileID: 1323883241}
+  ballSprite: {fileID: 803792779}
+  trailDuration: 0.34
+  widthRatio: 1.03
+  minVertexDistance: 0.02
+  trailColor: {r: 0.92, g: 0.97, b: 1, a: 0.8}
+  smoothMovement: 1
+  freezeTrailDuration: 2
+  freezeColors:
+    core: {r: 0.8, g: 0.98, b: 1, a: 0.95}
+    band: {r: 0.04, g: 0.73, b: 1, a: 0.7}
+    glow: {r: 0.02, g: 0.23, b: 0.72, a: 0.35}
+  fireColors:
+    core: {r: 1, g: 0.94, b: 0.3, a: 0.95}
+    band: {r: 1, g: 0.4, b: 0.03, a: 0.75}
+    glow: {r: 0.95, g: 0.05, b: 0.01, a: 0.38}
+  bombColors:
+    core: {r: 1, g: 0.23, b: 0.28, a: 0.9}
+    band: {r: 0.85, g: 0.025, b: 0.09, a: 0.75}
+    glow: {r: 0.38, g: 0.005, b: 0.03, a: 0.5}
+  mirageBlueColors:
+    core: {r: 0.85, g: 0.97, b: 1, a: 0.8}
+    band: {r: 0.36, g: 0.77, b: 1, a: 0.5}
+    glow: {r: 0.15, g: 0.4, b: 0.9, a: 0.22}
+  miragePurpleColors:
+    core: {r: 0.94, g: 0.86, b: 1, a: 0.8}
+    band: {r: 0.7, g: 0.46, b: 1, a: 0.5}
+    glow: {r: 0.46, g: 0.16, b: 0.85, a: 0.22}
 --- !u!1 &1933777773
 GameObject:
   m_ObjectHideFlags: 0
@@ -15511,7 +15551,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 100
   m_MaskInteraction: 0
   m_Sprite: {fileID: -8355457850676834410, guid: da0a33868719afa43bbd974e9a3574c9, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -17005,6 +17045,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 1104135864244099372, guid: 564a9628f9c6c5c4e91cc3c9cc6649b9, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1932559628}
+    - targetCorrespondingSourceObject: {fileID: 1104135864244099372, guid: 564a9628f9c6c5c4e91cc3c9cc6649b9, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1932559629}
   m_SourcePrefab: {fileID: 100100000, guid: 564a9628f9c6c5c4e91cc3c9cc6649b9, type: 3}
 --- !u!1001 &3348376441597737186
 PrefabInstance:
@@ -17020,7 +17063,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1474975843038766599, guid: f5c2920b8288f5749a696301da82caf9, type: 3}
       propertyPath: m_SortingOrder
-      value: 100
+      value: 200
       objectReference: {fileID: 0}
     - target: {fileID: 1474975843038766599, guid: f5c2920b8288f5749a696301da82caf9, type: 3}
       propertyPath: m_WasSpriteAssigned
@@ -17028,7 +17071,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1541306796317830574, guid: f5c2920b8288f5749a696301da82caf9, type: 3}
       propertyPath: m_Size.x
-      value: 2.08177
+      value: 4.470805
       objectReference: {fileID: 0}
     - target: {fileID: 1541306796317830574, guid: f5c2920b8288f5749a696301da82caf9, type: 3}
       propertyPath: m_Enabled
@@ -17036,7 +17079,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1541306796317830574, guid: f5c2920b8288f5749a696301da82caf9, type: 3}
       propertyPath: m_Offset.x
-      value: -0.51862895
+      value: -1.7131464
       objectReference: {fileID: 0}
     - target: {fileID: 2419510588201629092, guid: f5c2920b8288f5749a696301da82caf9, type: 3}
       propertyPath: ball

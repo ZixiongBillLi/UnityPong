@@ -18,15 +18,14 @@ public class PongFireVisuals : MonoBehaviour
 
     private int lastFrameIndex = -1;
 
-    private bool flipVertical = false;
-
-
     private Vector3 fireBaseScale;
+    private Quaternion fireBaseRotation;
 
 
     private void Awake()
     {
         fireBaseScale = fireVisual.transform.localScale;
+        fireBaseRotation = fireVisual.transform.localRotation;
 
         fireVisual.SetActive(false);
 
@@ -48,8 +47,6 @@ public class PongFireVisuals : MonoBehaviour
         {
             frameTimer = 0f;
 
-            flipVertical = !flipVertical;
-
             SetNextRandomFrame();
         }
     }
@@ -61,8 +58,6 @@ public class PongFireVisuals : MonoBehaviour
 
         frameTimer = 0f;
         lastFrameIndex = -1;
-
-        flipVertical = false;
 
         ballVisual.SetActive(false);
         fireVisual.SetActive(true);
@@ -83,6 +78,7 @@ public class PongFireVisuals : MonoBehaviour
         ballVisual.SetActive(true);
 
         fireVisual.transform.localScale = fireBaseScale;
+        fireVisual.transform.localRotation = fireBaseRotation;
     }
 
     private void SetNextRandomFrame()
@@ -121,41 +117,19 @@ public class PongFireVisuals : MonoBehaviour
     {
         Vector2 velocity = ball.GetVelocity();
 
-        if (Mathf.Abs(velocity.x) < 0.001f)
+        if (velocity.sqrMagnitude < 0.0001f)
         {
             return;
         }
 
-        float xScale = Mathf.Abs(fireBaseScale.x);
-
-        float yScale = Mathf.Abs(fireBaseScale.y);
-
-        if (velocity.x < 0f)
-        {
-            xScale *= -1f;
-        }
-
-        if (flipVertical)
-        {
-            yScale *= -1f;
-        }
-
-        fireVisual.transform.localScale = new Vector3(xScale, yScale, fireBaseScale.z);
-    }
-
-
-    private void UpdateFrameAnimation()
-    {
-        frameTimer += Time.deltaTime;
-
-        if (frameTimer < frameDuration)
-        {
-            return;
-        }
-
-        frameTimer = 0f;
-
-        SetNextRandomFrame();
+        // The source sprites point up. Their tips should point backward along the trail.
+        Vector3 tailDirection = new Vector3(-velocity.x, -velocity.y, 0f);
+        Transform anchor = fireVisual.transform.parent;
+        if (anchor != null)
+            tailDirection = anchor.InverseTransformVector(tailDirection);
+        float angle = Mathf.Atan2(tailDirection.y, tailDirection.x) * Mathf.Rad2Deg - 90f;
+        fireVisual.transform.localScale = fireBaseScale;
+        fireVisual.transform.localRotation = Quaternion.Euler(0f, 0f, angle);
     }
 
     //Hopefully randomize next frame

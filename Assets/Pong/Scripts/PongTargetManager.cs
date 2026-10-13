@@ -14,6 +14,9 @@ public class PongTargetManager : MonoBehaviour
 
     public Camera gameCamera;
 
+    // Current BottomWall top (-4.444), a 0.5-wide ball and target collider clearance.
+    private const float MinimumTargetViewportY = 0.19f;
+
     private GameObject currentTarget;
 
     private Coroutine spawnRoutine;
@@ -124,7 +127,8 @@ public class PongTargetManager : MonoBehaviour
 
     float viewportX = Random.Range(minX, maxX);
 
-    float viewportY = Random.Range(settings.targetMinY, settings.targetMaxY);
+    float minY = Mathf.Max(settings.targetMinY, MinimumTargetViewportY);
+    float viewportY = Random.Range(minY, settings.targetMaxY);
 
     Vector3 viewportPosition = new Vector3(viewportX, viewportY, 0f);
 
@@ -332,6 +336,8 @@ public class PongTargetManager : MonoBehaviour
 
         // reflect vertically
         exitY = 0.9f - entranceViewport.y;
+        // A high entrance must not mirror its exit into the bottom wall.
+        exitY = Mathf.Max(exitY, Mathf.Max(settings.targetMinY, MinimumTargetViewportY));
 
         if ((entranceIsLeft && ballMovingRight) || (!entranceIsLeft && !ballMovingRight))
         {

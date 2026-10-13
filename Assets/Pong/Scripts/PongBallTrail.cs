@@ -10,8 +10,8 @@ public class PongBallTrail : MonoBehaviour
     [SerializeField] private SpriteRenderer ballSprite;
 
     [Header("Appearance")]
-    [SerializeField, Min(0.01f)] private float trailDuration = 0.14f;
-    [SerializeField, Range(0.1f, 2f)] private float widthRatio = 0.65f;
+    [SerializeField, Min(0.01f)] private float trailDuration = 0.34f;
+    [SerializeField, Range(0.1f, 2f)] private float widthRatio = 1.03f;
     [SerializeField, Min(0.001f)] private float minVertexDistance = 0.02f;
     [SerializeField] private Color trailColor = new Color(0.92f, 0.97f, 1f, 0.8f);
     [SerializeField] private bool smoothMovement = true;
@@ -57,6 +57,8 @@ public class PongBallTrail : MonoBehaviour
     }
 
     private PongBallController ball;
+    private PongBombVisuals bombVisuals;
+    private SpriteRenderer[] fireRenderers;
     private Rigidbody2D body;
     private RigidbodyInterpolation2D originalInterpolation;
     private TrailGroup realTrail;
@@ -74,6 +76,17 @@ public class PongBallTrail : MonoBehaviour
     private void Awake()
     {
         ball = GetComponent<PongBallController>();
+        bombVisuals = GetComponent<PongBombVisuals>();
+        PongFireVisuals fireVisuals = GetComponent<PongFireVisuals>();
+        if (fireVisuals != null && fireVisuals.fireFrames != null)
+        {
+            fireRenderers = new SpriteRenderer[fireVisuals.fireFrames.Length];
+            for (int i = 0; i < fireRenderers.Length; i++)
+            {
+                if (fireVisuals.fireFrames[i] != null)
+                    fireRenderers[i] = fireVisuals.fireFrames[i].GetComponent<SpriteRenderer>();
+            }
+        }
         body = GetComponent<Rigidbody2D>();
         if (ballSprite == null && ball.ballVisual != null)
             ballSprite = ball.ballVisual.GetComponent<SpriteRenderer>();
@@ -158,7 +171,8 @@ public class PongBallTrail : MonoBehaviour
         TrailStyle style = effect == TargetType.Fire ? TrailStyle.Fire :
             effect == TargetType.Bomb ? TrailStyle.Bomb :
             freezeTrailRemaining > 0f ? TrailStyle.Freeze : TrailStyle.Normal;
-        UpdateGroup(realTrail, style, available && !mirageActive, emitting && !mirageActive);
+        UpdateGroup(realTrail, style, available && !mirageActive, emitting && !mirageActive,
+            RealSortingRenderer(style));
         UpdateGroup(mirageBlueTrail, TrailStyle.MirageBlue,
             available && mirageActive && MirageVisible(mirageBlueTrail), emitting && mirageActive);
         UpdateGroup(miragePurpleTrail, TrailStyle.MiragePurple,
@@ -218,7 +232,31 @@ public class PongBallTrail : MonoBehaviour
         }
     }
 
-    private void UpdateGroup(TrailGroup group, TrailStyle style, bool visible, bool emitting)
+    private SpriteRenderer RealSortingRenderer(TrailStyle style)
+    {
+        SpriteRenderer renderer = null;
+        if (style == TrailStyle.Bomb && bombVisuals != null)
+            renderer = LowerRenderer(bombVisuals.blackBombRenderer, bombVisuals.redBombRenderer);
+        else if (style == TrailStyle.Fire && fireRenderers != null)
+        {
+            foreach (SpriteRenderer frame in fireRenderers)
+                renderer = LowerRenderer(renderer, frame);
+        }
+        return renderer != null ? renderer : ballSprite;
+    }
+
+    private static SpriteRenderer LowerRenderer(SpriteRenderer first, SpriteRenderer second)
+    {
+        if (first == null) return second;
+        if (second == null) return first;
+        int firstLayer = SortingLayer.GetLayerValueFromID(first.sortingLayerID);
+        int secondLayer = SortingLayer.GetLayerValueFromID(second.sortingLayerID);
+        return firstLayer < secondLayer ||
+            (firstLayer == secondLayer && first.sortingOrder <= second.sortingOrder) ? first : second;
+    }
+
+    private void UpdateGroup(TrailGroup group, TrailStyle style, bool visible, bool emitting,
+        SpriteRenderer sortingRenderer = null)
     {
         if (group == null)
             return;
@@ -236,6 +274,8 @@ public class PongBallTrail : MonoBehaviour
 
         bool recolor = group.appearanceDirty || group.style != style;
         TrailPalette palette = ColorsFor(style);
+        if (sortingRenderer == null)
+            sortingRenderer = group.sprite;
         // Width is measured in world space, including each illusion's own Inspector scale.
         Vector3 size = group.sprite.sprite.bounds.size;
         Vector3 scale = group.sprite.transform.lossyScale;
@@ -246,8 +286,8 @@ public class PongBallTrail : MonoBehaviour
             layer.enabled = true;
             layer.emitting = emitting;
             layer.widthMultiplier = width * (i == 0 ? 1.75f : i == 1 ? 1f : 0.4f);
-            layer.sortingLayerID = group.sprite.sortingLayerID;
-            layer.sortingOrder = group.sprite.sortingOrder - 3 + i;
+            layer.sortingLayerID = sortingRenderer.sortingLayerID;
+            layer.sortingOrder = sortingRenderer.sortingOrder - 3 + i;
             if (recolor)
             {
                 layer.time = Mathf.Max(0.01f, trailDuration);
