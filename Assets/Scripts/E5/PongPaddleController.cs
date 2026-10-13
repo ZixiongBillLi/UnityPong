@@ -13,6 +13,7 @@ public enum PaddleSide
     Right
 }
 
+[RequireComponent(typeof(Rigidbody2D))]
 public class PongPaddleController : MonoBehaviour
 {
     public ControlScheme controlScheme;
@@ -25,6 +26,18 @@ public class PongPaddleController : MonoBehaviour
     private Vector3 startPosition;
     private bool initialized;
     private bool inputLocked;
+    private Rigidbody2D rb;
+    private Vector2 moveInput;
+
+    public float InwardDirectionX
+    {
+        get
+        {
+            CaptureStartPosition();
+            float centerX = ball != null ? ball.ServePosition.x : 0f;
+            return startPosition.x < centerX ? 1f : -1f;
+        }
+    }
 
     // The scene's initial X is the back limit, independent of who controls this side.
     public float ForwardLimitX
@@ -32,18 +45,33 @@ public class PongPaddleController : MonoBehaviour
         get
         {
             CaptureStartPosition();
-            float centerX = ball != null ? ball.ServePosition.x : 0f;
-            float towardCenter = startPosition.x < centerX ? 1f : -1f;
             float distance = settings != null ? Mathf.Max(0f, settings.paddleForwardDistance) : 0f;
-            return startPosition.x + towardCenter * distance;
+            return startPosition.x + InwardDirectionX * distance;
         }
     }
 
     private void Awake()
     {
         CaptureStartPosition();
+        InitializeBody();
         if (upAction == null && downAction == null)
             BindActions();
+    }
+
+    private void InitializeBody()
+    {
+        if (rb != null)
+            return;
+        rb = GetComponent<Rigidbody2D>();
+        // Existing scene objects may not receive a newly added RequireComponent attribute.
+        if (rb == null)
+            rb = gameObject.AddComponent<Rigidbody2D>();
+        rb.bodyType = RigidbodyType2D.Kinematic;
+        rb.gravityScale = 0f;
+        rb.freezeRotation = true;
+        rb.useFullKinematicContacts = true;
+        rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+        rb.interpolation = RigidbodyInterpolation2D.Interpolate;
     }
 
     private void CaptureStartPosition()
@@ -73,6 +101,9 @@ public class PongPaddleController : MonoBehaviour
 
     private void OnDisable()
     {
+        moveInput = Vector2.zero;
+        if (rb != null)
+            rb.linearVelocity = Vector2.zero;
         upAction?.Disable();
         downAction?.Disable();
     }
@@ -86,7 +117,10 @@ public class PongPaddleController : MonoBehaviour
     private void Update()
     {
         if (inputLocked || Time.timeScale == 0f || settings == null || ball == null)
+        {
+            moveInput = Vector2.zero;
             return;
+        }
 
         float vertical = (upAction != null && upAction.IsPressed() ? 1f : 0f) -
             (downAction != null && downAction.IsPressed() ? 1f : 0f);
@@ -99,27 +133,50 @@ public class PongPaddleController : MonoBehaviour
                 : (keys.rightArrowKey.isPressed ? 1f : 0f) - (keys.leftArrowKey.isPressed ? 1f : 0f);
         }
 
+        moveInput = Vector2.ClampMagnitude(new Vector2(horizontal, vertical), 1f);
+    }
+
+    private void FixedUpdate()
+    {
+        if (inputLocked || Time.timeScale == 0f || settings == null || ball == null)
+        {
+            rb.linearVelocity = Vector2.zero;
+            return;
+        }
+
         float ballSpeed = ball.currentBaseSpeed + ball.temporarySpeedBonus;
         float ratio = Mathf.InverseLerp(settings.baseBallSpeed, settings.ballSpeedForMaxPaddleSpeed, ballSpeed);
         float moveSpeed = Mathf.Lerp(settings.basePaddleSpeed, settings.maxPaddleSpeed, ratio);
-        Vector2 input = Vector2.ClampMagnitude(new Vector2(horizontal, vertical), 1f);
-        Vector3 position = transform.position + (Vector3)input * moveSpeed * Time.deltaTime;
+        Vector2 position = rb.position + moveInput * moveSpeed * Time.fixedDeltaTime;
         position.x = Mathf.Clamp(position.x, Mathf.Min(startPosition.x, ForwardLimitX),
             Mathf.Max(startPosition.x, ForwardLimitX));
         position.y = Mathf.Clamp(position.y, settings.paddleMinY, settings.paddleMaxY);
-        transform.position = position;
+        rb.MovePosition(position);
     }
 
-    public void SetInputLocked(bool locked) => inputLocked = locked;
+    public void SetInputLocked(bool locked)
+    {
+        inputLocked = locked;
+        if (locked)
+        {
+            moveInput = Vector2.zero;
+            if (rb != null)
+                rb.linearVelocity = Vector2.zero;
+        }
+    }
 
     public void ResetToStartPosition()
     {
         CaptureStartPosition();
-        transform.position = startPosition;
+        InitializeBody();
+        moveInput = Vector2.zero;
+        rb.linearVelocity = Vector2.zero;
+        rb.position = startPosition;
     }
 
     public void SetControlScheme(ControlScheme newScheme)
     {
+        moveInput = Vector2.zero;
         upAction?.Disable();
         downAction?.Disable();
         upAction?.Dispose();

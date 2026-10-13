@@ -8547,6 +8547,7 @@ MonoBehaviour:
   countdownFinalScale: 0.8
   swingPoseDuration: 0.5
   paddleHitAngleInfluence: 0.35
+  paddleMaxReturnAngle: 35
   portalLeftMinX: 0.43
   portalLeftMaxX: 0.47
   portalRightMinX: 0.53
@@ -12289,7 +12290,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1577067246
 Transform:
   m_ObjectHideFlags: 0

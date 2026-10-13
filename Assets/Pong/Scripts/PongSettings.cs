@@ -103,6 +103,7 @@ public class PongSettings : MonoBehaviour
 
     // Paddle Angle
     public float paddleHitAngleInfluence = 0.35f;
+    [Range(1f, 45f)] public float paddleMaxReturnAngle = 35f;
 
     // Portal spawn regions
     public float portalLeftMinX = 0.43f;

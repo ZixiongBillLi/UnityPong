@@ -14,6 +14,10 @@ public class PongBallController : MonoBehaviour
     public InputActionAsset inputActions;
 
     private Rigidbody2D rb;
+    private Collider2D ballCollider;
+    private Collider2D lastPaddleCollider;
+    private float lastPaddleInwardX;
+    private const float PaddleSeparation = 0.02f;
     private Vector2 direction;
     private InputAction interactAction;
     private bool isMoving = false;
@@ -73,6 +77,7 @@ public class PongBallController : MonoBehaviour
         if (initialized)
             return;
         rb = GetComponent<Rigidbody2D>();
+        ballCollider = GetComponent<Collider2D>();
         bombVisuals = GetComponent<PongBombVisuals>();
         fireVisuals = GetComponent<PongFireVisuals>();
         servePosition = transform.position;
@@ -106,6 +111,7 @@ public class PongBallController : MonoBehaviour
 
     private void FixedUpdate()
     {
+        ReleasePaddleContactWhenSeparated();
         if (isMoving && !isFrozen && !isTeleporting)
         {
             float effectiveSpeed = currentBaseSpeed + temporarySpeedBonus;
@@ -156,36 +162,46 @@ public class PongBallController : MonoBehaviour
 
     private void OnCollisionEnter2D(Collision2D collision)
     {
-        if (!isMoving || isTeleporting)
-            return;
-        Vector2 normal = collision.GetContact(0).normal;
+        HandleCollision(collision);
+    }
 
-        Vector2 reflectedDirection = Vector2.Reflect(direction, normal);
+    private void OnCollisionStay2D(Collision2D collision)
+    {
+        // Moving paddles can keep touching the ball after the initial return.
+        HandleCollision(collision);
+    }
+
+    private void HandleCollision(Collision2D collision)
+    {
+        if (!isMoving || isFrozen || isTeleporting)
+            return;
+        ContactPoint2D contact = collision.GetContact(0);
 
         PongPaddleController paddle = collision.gameObject.GetComponent<PongPaddleController>();
 
         if (paddle != null)
         {
+            Collider2D paddleCollider = collision.collider;
+            float inwardX = paddle.InwardDirectionX;
+            if (paddleCollider == lastPaddleCollider)
+            {
+                // Preserve wall reflections and do not repeat speed, score or effect hit counters.
+                direction = ClampPaddleReturnDirection(direction, inwardX);
+                SeparateBallFromPaddle(paddleCollider, inwardX);
+                return;
+            }
+
+            direction = GetPaddleReturnDirection(paddleCollider.bounds, contact, inwardX);
+            lastPaddleCollider = paddleCollider;
+            lastPaddleInwardX = inwardX;
+            SeparateBallFromPaddle(paddleCollider, inwardX);
+
             PongPaddleVisuals paddleVisuals = paddle.GetComponent<PongPaddleVisuals>();
 
             if (paddleVisuals != null)
             {
                 paddleVisuals.PlayHitFeedback();
             }
-
-            Collider2D paddleCollider = paddle.GetComponent<Collider2D>();
-
-            float halfHeight = paddleCollider.bounds.extents.y;
-
-            float hitOffset = (rb.position.y - paddle.transform.position.y) / halfHeight;
-
-            hitOffset = Mathf.Clamp(hitOffset, -1f, 1f);
-
-            float newY = reflectedDirection.y + hitOffset * settings.paddleHitAngleInfluence;
-
-            newY = Mathf.Clamp(newY, -0.9f, 0.9f);
-
-            direction = new Vector2(reflectedDirection.x, newY).normalized;
 
             paddleHitCount++;
             currentBaseSpeed += settings.ballSpeedIncreasePerHit;
@@ -219,8 +235,68 @@ public class PongBallController : MonoBehaviour
         }
         else
         {
-            direction = reflectedDirection;
+            // Also handles a wall still touching the ball when a corner rescue turns it toward that wall.
+            if (Vector2.Dot(direction, contact.normal) < 0f)
+                direction = Vector2.Reflect(direction, contact.normal);
         }
+    }
+
+    private Vector2 GetPaddleReturnDirection(Bounds paddleBounds, ContactPoint2D contact, float inwardX)
+    {
+        const float edgeTolerance = 0.01f;
+        float maximumAngle = Mathf.Clamp(settings.paddleMaxReturnAngle, 1f, 45f) * Mathf.Deg2Rad;
+        float angle;
+        if (contact.point.y >= paddleBounds.max.y - edgeTolerance)
+            angle = maximumAngle;
+        else if (contact.point.y <= paddleBounds.min.y + edgeTolerance)
+            angle = -maximumAngle;
+        else if (Mathf.Abs(contact.normal.y) > 0.5f)
+            angle = contact.normal.y > 0f ? maximumAngle : -maximumAngle;
+        else
+        {
+            // Front and rear faces share the incoming vertical direction and hit-position adjustment.
+            float hitOffset = Mathf.Clamp((rb.position.y - paddleBounds.center.y) /
+                Mathf.Max(0.001f, paddleBounds.extents.y), -1f, 1f);
+            Vector2 adjustedDirection = new Vector2(direction.x,
+                direction.y + hitOffset * settings.paddleHitAngleInfluence);
+            return ClampPaddleReturnDirection(adjustedDirection, inwardX);
+        }
+        return new Vector2(inwardX * Mathf.Cos(angle), Mathf.Sin(angle));
+    }
+
+    private Vector2 ClampPaddleReturnDirection(Vector2 incoming, float inwardX)
+    {
+        float maximumAngle = Mathf.Clamp(settings.paddleMaxReturnAngle, 1f, 45f) * Mathf.Deg2Rad;
+        float angle = Mathf.Atan2(incoming.y, Mathf.Abs(incoming.x));
+        angle = Mathf.Clamp(angle, -maximumAngle, maximumAngle);
+        return new Vector2(inwardX * Mathf.Cos(angle), Mathf.Sin(angle));
+    }
+
+    private void SeparateBallFromPaddle(Collider2D paddleCollider, float inwardX)
+    {
+        Bounds paddleBounds = paddleCollider.bounds;
+        float halfWidth = ballCollider.bounds.extents.x;
+        float offsetX = transform.TransformVector((Vector3)ballCollider.offset).x;
+        Vector2 position = rb.position;
+        float frontX = inwardX > 0f ? paddleBounds.max.x : paddleBounds.min.x;
+        float safeX = frontX + inwardX * (halfWidth + PaddleSeparation) - offsetX;
+        position.x = inwardX > 0f ? Mathf.Max(position.x, safeX) : Mathf.Min(position.x, safeX);
+        // Keep Y unchanged so an edge rescue cannot teleport the ball through TopWall or BottomWall.
+        rb.position = position;
+    }
+
+    private void ReleasePaddleContactWhenSeparated()
+    {
+        if (lastPaddleCollider == null)
+            return;
+        Bounds ballBounds = ballCollider.bounds;
+        Bounds paddleBounds = lastPaddleCollider.bounds;
+        float gap = lastPaddleInwardX > 0f
+            ? ballBounds.min.x - paddleBounds.max.x
+            : paddleBounds.min.x - ballBounds.max.x;
+        // Require a real gap, rather than rearming immediately after the tiny separation correction.
+        if (gap > Mathf.Max(PaddleSeparation * 2f, ballBounds.extents.x * 0.5f))
+            lastPaddleCollider = null;
     }
     
 
@@ -233,6 +309,7 @@ public class PongBallController : MonoBehaviour
         isTeleporting = false;
         SetBallVisible(true);
         direction = Vector2.zero;
+        lastPaddleCollider = null;
 
         currentBaseSpeed = newServeSpeed;
         temporarySpeedBonus = 0f;
