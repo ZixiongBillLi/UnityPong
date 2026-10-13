@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using TMPro;
 
 [DisallowMultipleComponent]
 public class PongUIFeedback : MonoBehaviour,
@@ -147,6 +148,14 @@ public class PongUIFeedback : MonoBehaviour,
     public void OnPointerEnter(PointerEventData eventData)
     {
         if (!CanInteract || EventSystem.current == null)
+            return;
+
+        // Hover must not end an edit. A real click still selects the clicked control.
+        GameObject current = EventSystem.current.currentSelectedGameObject;
+        TMP_InputField editingInput = current != null
+            ? current.GetComponent<TMP_InputField>()
+            : null;
+        if (editingInput != null && editingInput.isFocused)
             return;
 
         if (Mouse.current != null && Mouse.current.leftButton.isPressed)

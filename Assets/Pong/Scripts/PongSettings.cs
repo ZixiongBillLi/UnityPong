@@ -45,7 +45,7 @@ public class PongSettings : MonoBehaviour
     public float normalServeTargetDelay = 2f;
 
     public float targetLifetime = 10f;
-    public float targetBlinkStartTime = 6f;
+    [Min(0.01f)] public float targetFadeDuration = 0.5f;
     public float targetRespawnDelay = 2f;
     public float targetRespawnAfterEffect = 1.5f;
 

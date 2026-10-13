@@ -19,7 +19,7 @@ public class PongTargetManager : MonoBehaviour
     private Coroutine spawnRoutine;
     private Coroutine targetLifetimeRoutine;
     private SpriteRenderer[] targetRenderers;
-    private bool[] targetRendererVisibility;
+    private float[] targetRendererAlphas;
 
     private bool firstServe = true;
 
@@ -82,16 +82,7 @@ public class PongTargetManager : MonoBehaviour
         StopSpawnCountdown();
         StopTargetLifetime();
 
-        // A blink may have hidden the target. Restore its original renderer states
-        // without destroying the target or enabling intentionally hidden visuals.
-        if (currentTarget == null || targetRenderers == null)
-            return;
-
-        for (int i = 0; i < targetRenderers.Length; i++)
-        {
-            if (targetRenderers[i] != null)
-                targetRenderers[i].enabled = targetRendererVisibility[i];
-        }
+        // Preserve the final field at its current opacity and renderer states.
     }
 
 
@@ -167,27 +158,13 @@ public class PongTargetManager : MonoBehaviour
     private IEnumerator TargetLifetime()
     {
         targetRenderers = currentTarget.GetComponentsInChildren<SpriteRenderer>(true);
-        targetRendererVisibility = new bool[targetRenderers.Length];
-        for (int i = 0; i < targetRenderers.Length; i++)
-            targetRendererVisibility[i] = targetRenderers[i].enabled;
+        targetRendererAlphas = CaptureAlphas(targetRenderers);
 
-        yield return new WaitForSeconds(settings.targetBlinkStartTime);
-
-        float blinkDuration = settings.targetLifetime - settings.targetBlinkStartTime;
-
-        float elapsedTime = 0f;
-
-        while (elapsedTime < blinkDuration)
-        {
-            foreach (SpriteRenderer renderer in targetRenderers)
-            {
-                renderer.enabled = !renderer.enabled;
-            }
-
-            yield return new WaitForSeconds(0.15f);
-
-            elapsedTime += 0.15f;
-        }
+        // The fade is the final part of the existing total lifetime.
+        float lifetime = Mathf.Max(0f, settings.targetLifetime);
+        float fadeDuration = Mathf.Min(lifetime, Mathf.Max(0.01f, settings.targetFadeDuration));
+        yield return new WaitForSeconds(lifetime - fadeDuration);
+        yield return FadeRenderers(targetRenderers, targetRendererAlphas, fadeDuration);
 
         targetLifetimeRoutine = null;
 
@@ -208,7 +185,42 @@ public class PongTargetManager : MonoBehaviour
         }
 
         targetRenderers = null;
-        targetRendererVisibility = null;
+        targetRendererAlphas = null;
+    }
+
+    private static float[] CaptureAlphas(SpriteRenderer[] renderers)
+    {
+        float[] alphas = new float[renderers.Length];
+        for (int i = 0; i < renderers.Length; i++)
+            if (renderers[i] != null)
+                alphas[i] = renderers[i].color.a;
+        return alphas;
+    }
+
+    private static IEnumerator FadeRenderers(SpriteRenderer[] renderers, float[] alphas,
+        float duration)
+    {
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            // Scaled time freezes the fade throughout pause and its countdown.
+            yield return null;
+            elapsed += Time.deltaTime;
+            SetFadeAlpha(renderers, alphas, 1f - Mathf.Clamp01(elapsed / duration));
+        }
+        SetFadeAlpha(renderers, alphas, 0f);
+    }
+
+    private static void SetFadeAlpha(SpriteRenderer[] renderers, float[] alphas, float factor)
+    {
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            if (renderers[i] == null)
+                continue;
+            Color color = renderers[i].color;
+            color.a = alphas[i] * factor;
+            renderers[i].color = color;
+        }
     }
 
     private void StopTargetLifetime()

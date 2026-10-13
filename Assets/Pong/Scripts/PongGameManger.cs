@@ -28,8 +28,6 @@ public class PongGameManager : MonoBehaviour
     public GameObject modeSelectPanel;
 
     public TMP_Text currentLegacyScoreText;
-    public GameObject unsavedChangesPanel;
-    public TMP_Text unsavedChangesText;
 
     public Toggle quickModeToggle;
     public bool quickMode = true;
@@ -82,7 +80,8 @@ public class PongGameManager : MonoBehaviour
 
     public PongTargetManager targetManager;
 
-    public TMP_Text applySuccessCheck;
+    [Tooltip("Image on LegacyCustomizePanel/ApplyCheckImage/Visual.")]
+    public Image applySuccessCheck;
 
     private Coroutine applyFeedbackRoutine;
 
@@ -180,7 +179,7 @@ public class PongGameManager : MonoBehaviour
         mainMenuPanel.SetActive(true);
         modeSelectPanel.SetActive(false);
         legacyCustomizePanel.SetActive(false);
-        unsavedChangesPanel.SetActive(false);
+        HideApplySuccessFeedback();
         sideSelectPanel.SetActive(false);
         
 
@@ -288,7 +287,6 @@ public class PongGameManager : MonoBehaviour
         mainMenuPanel.SetActive(panel == mainMenuPanel);
         timedSetupPanel.SetActive(panel == timedSetupPanel);
         legacyCustomizePanel.SetActive(panel == legacyCustomizePanel);
-        unsavedChangesPanel.SetActive(panel == unsavedChangesPanel);
 
         sideSelectPanel.SetActive(false);
         gameOverPanel.SetActive(false);
@@ -663,6 +661,10 @@ public class PongGameManager : MonoBehaviour
 
     public void ShowMainMenu()
     {
+        // Also commit pending Legacy input when this method is called directly.
+        if (legacyCustomizePanel != null && legacyCustomizePanel.activeInHierarchy &&
+            legacyScoreInput != null)
+            SaveLegacyCustomization(legacyScoreInput.text);
         SetMenuPanel(mainMenuPanel);
     }
 
@@ -718,7 +720,6 @@ public class PongGameManager : MonoBehaviour
         sideSelectPanel.SetActive(false);
         modeSelectPanel.SetActive(false);
         legacyCustomizePanel.SetActive(false);
-        unsavedChangesPanel.SetActive(false);
 
         mainMenuPanel.SetActive(true);
         
@@ -726,10 +727,7 @@ public class PongGameManager : MonoBehaviour
 
     public void SelectLegacyMode()
     {
-        gameMode = GameMode.Legacy;
-        quickMode = false;
-
-        ShowSideSelect();
+        ShowLegacyCustomize();
     }
 
     public void SelectTimed45()
@@ -804,44 +802,51 @@ public class PongGameManager : MonoBehaviour
 
     public void ShowLegacyCustomize()
     {
+        gameMode = GameMode.Legacy;
+        quickMode = false;
         SetMenuPanel(legacyCustomizePanel);
-
-        legacyScoreInput.text = settings.legacyWinScore.ToString();
-        UpdateLegacyCustomizeText();
+        ResetLegacyScoreInput();
     }
 
-    public void ApplyLegacyCustomization()
+    public void PlayLegacyMode()
     {
-        if (!SaveLegacyCustomization())
-        {
+        if (settings == null || legacyScoreInput == null)
             return;
-        }
 
-        StartApplySuccessFeedback();
+        // An empty field uses the score shown by the placeholder.
+        SaveLegacyCustomization(legacyScoreInput.text);
+        gameMode = GameMode.Legacy;
+        quickMode = false;
+        ShowSideSelect();
     }
 
-    public void ApplyLegacyCustomizationAndGoBack()
+    public void BackFromLegacyCustomize()
     {
-        if (!SaveLegacyCustomization())
-        {
-            return;
-        }
-
         ShowMainMenu();
-
-        // HideApplySuccessFeedback();
-
-        // legacyCustomizePanel.SetActive(false);
-        // modeSelectPanel.SetActive(true);
     }
 
     public void SubmitLegacyScore(string inputText)
     {
-        ApplyLegacyCustomization();
+        if (SaveLegacyCustomization(inputText))
+            StartApplySuccessFeedback();
+    }
+
+    public void ResetLegacyScoreInput()
+    {
+        if (settings == null || legacyScoreInput == null)
+            return;
+
+        settings.legacyWinScore = Mathf.Clamp(settings.legacyWinScore, 1, 999);
+        legacyScoreInput.SetTextWithoutNotify(string.Empty);
+        UpdateLegacyCustomizeText();
     }
 
     private void StartApplySuccessFeedback()
     {
+        if (applySuccessCheck == null || legacyCustomizePanel == null ||
+            !legacyCustomizePanel.activeInHierarchy)
+            return;
+
         if (applyFeedbackRoutine != null)
         {
             StopCoroutine(applyFeedbackRoutine);
@@ -857,14 +862,14 @@ public class PongGameManager : MonoBehaviour
 
         SetApplyCheckAlpha(1f);
 
-        yield return new WaitForSeconds(2f);
+        yield return new WaitForSecondsRealtime(2f);
 
         float fadeDuration = 3f;
         float elapsedTime = 0f;
 
         while (elapsedTime < fadeDuration)
         {
-            elapsedTime += Time.deltaTime;
+            elapsedTime += Time.unscaledDeltaTime;
 
             float progress = Mathf.Clamp01(elapsedTime / fadeDuration);
 
@@ -883,6 +888,8 @@ public class PongGameManager : MonoBehaviour
 
     private void SetApplyCheckAlpha(float alpha)
     {
+        if (applySuccessCheck == null)
+            return;
         Color color = applySuccessCheck.color;
         color.a = alpha;
         applySuccessCheck.color = color;
@@ -897,35 +904,29 @@ public class PongGameManager : MonoBehaviour
         }
 
         SetApplyCheckAlpha(0f);
-        applySuccessCheck.gameObject.SetActive(false);
+        if (applySuccessCheck != null)
+            applySuccessCheck.gameObject.SetActive(false);
     }
 
-    private bool SaveLegacyCustomization()
+    private bool SaveLegacyCustomization(string inputText)
     {
-        int newScore;
+        if (settings == null || legacyScoreInput == null)
+            return false;
 
-        if (!int.TryParse(legacyScoreInput.text, out newScore))
+        if (!int.TryParse(inputText, out int newScore))
         {
+            ResetLegacyScoreInput();
             return false;
         }
 
         newScore = Mathf.Clamp(newScore, 1, 999);
 
         settings.legacyWinScore = newScore;
-
-        legacyScoreInput.text = newScore.ToString();
-
-        UpdateLegacyCustomizeText();
+        ResetLegacyScoreInput();
 
         return true;
     }
 
-    public void BackFromLegacyCustomize()
-    {
-        RequestBackFromLegacyCustomize();
-        // legacyCustomizePanel.SetActive(false);
-        // modeSelectPanel.SetActive(true);
-    }
     private void UpdateLegacyMatchInfo()
     {
         matchInfoText.text = "First to " + settings.legacyWinScore;
@@ -933,83 +934,10 @@ public class PongGameManager : MonoBehaviour
 
     private void UpdateLegacyCustomizeText()
     {
-        currentLegacyScoreText.text = "Current: " + settings.legacyWinScore;
-    }
-
-    
-
-    public void RequestBackFromLegacyCustomize()
-    {
-        if (HasUnsavedLegacyChanges())
-        {
-            ShowUnsavedChangesWarning();
-        }
-        else
-        {
-            ShowMainMenu();
-        }
-    }
-
-    private bool HasUnsavedLegacyChanges()
-    {
-        int inputScore;
-
-        if (!int.TryParse(legacyScoreInput.text, out inputScore
-        ))
-        {
-            return true;
-        }
-
-        return inputScore != settings.legacyWinScore;
-    }
-
-    private void ShowUnsavedChangesWarning()
-    {
-        // legacyCustomizePanel.SetActive(false);
-        // unsavedChangesPanel.SetActive(true);
-
-        string inputValue = legacyScoreInput.text;
-
-        if (string.IsNullOrEmpty(inputValue))
-        {
-            inputValue = "(empty)";
-        }
-
-        unsavedChangesText.text = "Changes:\n" + "Legacy Winning Score: " + settings.legacyWinScore + " → " + inputValue;
-
-        SetMenuPanel(unsavedChangesPanel);
-    }
-
-    public void CancelDiscardLegacyChanges()
-    {
-        SetMenuPanel(legacyCustomizePanel);
-        // unsavedChangesPanel.SetActive(false);
-        // legacyCustomizePanel.SetActive(true);
-    }
-
-    public void ConfirmDiscardLegacyChanges()
-    {
-        // unsavedChangesPanel.SetActive(false);
-
-        legacyScoreInput.text = settings.legacyWinScore.ToString();
-        
-        ShowMainMenu();
-        // legacyCustomizePanel.SetActive(false);
-        // modeSelectPanel.SetActive(true);
-    }
-
-    public void SaveLegacyChangesAndContinue()
-    {
-        if (!SaveLegacyCustomization())
-        {
-            return;
-        }
-
-        HideApplySuccessFeedback();
-
-        unsavedChangesPanel.SetActive(false);
-        legacyCustomizePanel.SetActive(false);
-        modeSelectPanel.SetActive(true);
+        if (currentLegacyScoreText != null)
+            currentLegacyScoreText.text = "FIRST TO " + settings.legacyWinScore + " POINTS WINS";
+        if (legacyScoreInput != null && legacyScoreInput.placeholder is TMP_Text placeholderText)
+            placeholderText.text = settings.legacyWinScore.ToString();
     }
 
     public void SetQuickMode(bool isOn)

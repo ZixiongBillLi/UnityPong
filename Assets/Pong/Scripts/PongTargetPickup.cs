@@ -16,6 +16,7 @@ public class PongTargetPickup : MonoBehaviour
     private SpriteRenderer spriteRenderer;
 
     private PongTargetManager targetManager;
+    private bool collected;
 
     private void Awake()
     {
@@ -26,11 +27,15 @@ public class PongTargetPickup : MonoBehaviour
     {
         targetType = type;
         targetManager = manager;
+        collected = false;
 
     }
 
     private void OnTriggerEnter2D(Collider2D other)
     {
+        if (collected || !enabled || targetManager == null)
+            return;
+
         PongBallController ball = null;
 
         if (other.attachedRigidbody != null)
@@ -51,6 +56,7 @@ public class PongTargetPickup : MonoBehaviour
 
         if (effectApplied)
         {
+            collected = true;
             ball.AddTargetValueBonus(targetType);
             targetManager.OnTargetCollected();
         }
