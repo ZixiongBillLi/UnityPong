@@ -53,6 +53,7 @@ public class PongBallController : MonoBehaviour
     public event System.Action Launched;
     public event System.Action ServeReset;
     public bool IsTeleporting => isTeleporting;
+    public TargetType? ActiveEffect => hasActiveEffect ? activeEffect : (TargetType?)null;
     private Vector2 servePosition;
     private bool initialized;
     private bool serveInputArmed;
