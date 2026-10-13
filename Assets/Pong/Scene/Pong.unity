@@ -8493,7 +8493,7 @@ MonoBehaviour:
   paddleMaxY: 1.6
   legacyWinScore: 50
   baseBallSpeed: 5
-  maxBallSpeed: 15
+  maxBallSpeed: 12
   ballSpeedIncreasePerHit: 2
   timedMaxServeSpeed: 12
   basePaddleSpeed: 5

@@ -15,7 +15,7 @@ public class PongSettings : MonoBehaviour
 
     // Ball speed
     public float baseBallSpeed = 5f;
-    public float maxBallSpeed = 15f;
+    public float maxBallSpeed = 12f;
     public float ballSpeedIncreasePerHit = 2f;
 
     // Timed mode
